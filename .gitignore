@@ -1,3 +1,5 @@
 .dep
 *.o
 *.ll
+*.wasm
+*.why

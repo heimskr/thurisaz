@@ -1,20 +1,32 @@
 EMIT	:= clang++ -S -emit-llvm -std=c++2a
 SOURCES	:= $(shell find src/*.cpp)
 LLVMIR	:= $(SOURCES:.cpp=.ll)
-OUTPUT	:= Thurisaz.ll
+LINKED	:= Thurisaz.ll
+WASM	:= Thurisaz.wasm
+OUTPUT	:= Thurisaz.why
 
-.PHONY: clean
+.PHONY: linked wasm clean
 
 %.ll: %.cpp
 	$(EMIT) -Iinclude $< -o $@
 
 all: $(OUTPUT)
 
-clean:
-	rm -f src/*.ll src/**/*.ll
+$(OUTPUT): $(WASM)
+	wasmc $(WASM) $(OUTPUT)
 
-$(OUTPUT): $(SOURCES:.cpp=.ll)
+$(WASM): $(LINKED)
+	ll2w $(LINKED) > $(WASM)
+
+$(LINKED): $(SOURCES:.cpp=.ll)
 	llvm-link -S -o $@ $(LLVMIR)
+
+linked: $(LINKED)
+
+wasm: $(WASM)
+
+clean:
+	rm -f $(LINKED) $(WASM) src/*.ll src/**/*.ll
 
 DEPFILE  = .dep
 DEPTOKEN = "\# MAKEDEPENDS"
