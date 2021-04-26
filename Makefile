@@ -1,16 +1,20 @@
 EMIT	:= clang++ -S -emit-llvm -std=c++2a
 SOURCES	:= $(shell find src/*.cpp)
-
+LLVMIR	:= $(SOURCES:.cpp=.ll)
+OUTPUT	:= Thurisaz.ll
 
 .PHONY: clean
 
 %.ll: %.cpp
-	$(EMIT) $< -o $@
+	$(EMIT) -Iinclude $< -o $@
 
-all: $(SOURCES:.cpp=.ll)
+all: $(OUTPUT)
 
 clean:
 	rm -f src/*.ll src/**/*.ll
+
+$(OUTPUT): $(SOURCES:.cpp=.ll)
+	llvm-link -S -o $@ $(LLVMIR)
 
 DEPFILE  = .dep
 DEPTOKEN = "\# MAKEDEPENDS"
