@@ -1,9 +1,10 @@
-EMIT	:= clang++ -S -emit-llvm -std=c++2a
-SOURCES	:= $(shell find src/*.cpp)
-LLVMIR	:= $(SOURCES:.cpp=.ll)
-LINKED	:= Thurisaz.ll
-WASM	:= Thurisaz.wasm
-OUTPUT	:= Thurisaz.why
+EMIT		:= clang++ -S -emit-llvm -std=c++2a
+SOURCES		:= $(shell find src/*.cpp)
+LLVMIR		:= $(SOURCES:.cpp=.ll)
+LINKED		:= Thurisaz.ll
+WASM		:= Thurisaz.wasm
+OUTPUT		:= Thurisaz.why
+LLVMLINK	?= llvm-link
 
 .PHONY: linked wasm clean
 
@@ -19,7 +20,7 @@ $(WASM): $(LINKED)
 	ll2w $(LINKED) > $(WASM)
 
 $(LINKED): $(SOURCES:.cpp=.ll)
-	llvm-link -S -o $@ $(LLVMIR)
+	$(LLVMLINK) -S -o $@ $(LLVMIR)
 
 linked: $(LINKED)
 
