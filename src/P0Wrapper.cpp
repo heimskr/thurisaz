@@ -38,15 +38,15 @@ bool P0Wrapper::isPresent(uint64_t entry) {
 	return (entry & 1) == 1;
 }
 
-uint64_t P0Wrapper::getP0E(void *addr) {
+uint64_t P0Wrapper::getP0E(void *addr) const {
 	return entries[p0Offset(addr)];
 }
 
 bool P0Wrapper::getP1E(void *addr, uint64_t &out) {
-	uint64_t p0e = getP0E(addr);
+	const uint64_t p0e = getP0E(addr);
 	if (!isPresent(p0e))
 		return false;
-	out = ((uint64_t *) (p0e & ~0xff))[p1Offset(addr)];
+	out = ((uint64_t *) (p0e & ~0x7ff))[p1Offset(addr)];
 	return true;
 }
 
@@ -56,7 +56,7 @@ bool P0Wrapper::getP2E(void *addr, uint64_t &out) {
 		return false;
 	if (!isPresent(p1e))
 		return false;
-	out = ((uint64_t *) (p1e & ~0xff))[p2Offset(addr)];
+	out = ((uint64_t *) (p1e & ~0x7ff))[p2Offset(addr)];
 	return true;
 }
 
@@ -66,7 +66,7 @@ bool P0Wrapper::getP3E(void *addr, uint64_t &out) {
 		return false;
 	if (!isPresent(p2e))
 		return false;
-	out = ((uint64_t *) (p2e & ~0xff))[p3Offset(addr)];
+	out = ((uint64_t *) (p2e & ~0x7ff))[p3Offset(addr)];
 	return true;
 }
 
@@ -76,7 +76,7 @@ bool P0Wrapper::getP4E(void *addr, uint64_t &out) {
 		return false;
 	if (!isPresent(p3e))
 		return false;
-	out = ((uint64_t *) (p3e & ~0xff))[p4Offset(addr)];
+	out = ((uint64_t *) (p3e & ~0x7ff))[p4Offset(addr)];
 	return true;
 }
 
@@ -86,6 +86,13 @@ bool P0Wrapper::getP5E(void *addr, uint64_t &out) {
 		return false;
 	if (!isPresent(p4e))
 		return false;
-	out = ((uint64_t *) (p4e & ~0xff))[p5Offset(addr)];
+	out = ((uint64_t *) (p4e & ~0x7ff))[p5Offset(addr)];
 	return true;
+}
+
+bool P0Wrapper::hasPage(void *addr) {
+	uint64_t p5e;
+	if (!getP5E(addr, p5e))
+		return false;
+	return isPresent(p5e);
 }
