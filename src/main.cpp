@@ -1,5 +1,6 @@
 #include "P0Wrapper.h"
 #include "Print.h"
+#include <string>
 
 void pagefault();
 
@@ -41,6 +42,9 @@ int main() {
 	prd(P0Wrapper::p4Offset(stack)); prc(' ');
 	prd(P0Wrapper::p5Offset(stack));
 	strprint(" ]\n");
+
+	std::string foo = "Hello\n";
+	strprint(foo.c_str());
 
 	// *(uint64_t *) (65536 + P0Wrapper::p0Offset(stack)) = (65536 + 2048 * 6) | P0Wrapper::PRESENT;
 

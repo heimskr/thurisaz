@@ -1,5 +1,5 @@
-EMIT		:= clang++ -S -emit-llvm -std=c++2a
-SOURCES		:= $(shell find src/*.cpp)
+EMIT		:= clang++ -S -emit-llvm -std=c++2a -nostdlib -fno-builtin -Iinclude -Iinclude/libcxx -fno-exceptions -fno-rtti
+SOURCES		:= $(shell find src/*.cpp src/**/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
 LINKED		:= Thurisaz.ll
 WASM		:= Thurisaz.wasm
