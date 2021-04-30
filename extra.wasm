@@ -1,0 +1,9 @@
+#data
+
+__errno__: (8)
+
+#code
+
+sub _Z17___errno_locationv() {
+	&__errno__ -> $r0
+}

@@ -178,77 +178,77 @@ as_integer( const string& func, const wstring& s, size_t* idx, int base )
 
 // as_float
 
-template<typename V, typename S, typename F>
-inline
-V
-as_float_helper(const string& func, const S& str, size_t* idx, F f )
-{
-    typename S::value_type* ptr = nullptr;
-    const typename S::value_type* const p = str.c_str();
-    typename remove_reference<decltype(errno)>::type errno_save = errno;
-    errno = 0;
-    V r = f(p, &ptr);
-    swap(errno, errno_save);
-    if (errno_save == ERANGE)
-        throw_from_string_out_of_range(func);
-    if (ptr == p)
-        throw_from_string_invalid_arg(func);
-    if (idx)
-        *idx = static_cast<size_t>(ptr - p);
-    return r;
-}
+// template<typename V, typename S, typename F>
+// inline
+// V
+// as_float_helper(const string& func, const S& str, size_t* idx, F f )
+// {
+//     typename S::value_type* ptr = nullptr;
+//     const typename S::value_type* const p = str.c_str();
+//     typename remove_reference<decltype(errno)>::type errno_save = errno;
+//     errno = 0;
+//     V r = f(p, &ptr);
+//     swap(errno, errno_save);
+//     if (errno_save == ERANGE)
+//         throw_from_string_out_of_range(func);
+//     if (ptr == p)
+//         throw_from_string_invalid_arg(func);
+//     if (idx)
+//         *idx = static_cast<size_t>(ptr - p);
+//     return r;
+// }
 
-template<typename V, typename S>
-inline
-V as_float( const string& func, const S& s, size_t* idx = nullptr );
+// template<typename V, typename S>
+// inline
+// V as_float( const string& func, const S& s, size_t* idx = nullptr );
 
-template<>
-inline
-float
-as_float( const string& func, const string& s, size_t* idx )
-{
-    return as_float_helper<float>( func, s, idx, strtof );
-}
+// template<>
+// inline
+// float
+// as_float( const string& func, const string& s, size_t* idx )
+// {
+//     return as_float_helper<float>( func, s, idx, strtof );
+// }
 
-template<>
-inline
-double
-as_float(const string& func, const string& s, size_t* idx )
-{
-    return as_float_helper<double>( func, s, idx, strtod );
-}
+// template<>
+// inline
+// double
+// as_float(const string& func, const string& s, size_t* idx )
+// {
+//     return as_float_helper<double>( func, s, idx, strtod );
+// }
 
-template<>
-inline
-long double
-as_float( const string& func, const string& s, size_t* idx )
-{
-    return as_float_helper<long double>( func, s, idx, strtold );
-}
+// template<>
+// inline
+// long double
+// as_float( const string& func, const string& s, size_t* idx )
+// {
+//     return as_float_helper<long double>( func, s, idx, strtold );
+// }
 
-template<>
-inline
-float
-as_float( const string& func, const wstring& s, size_t* idx )
-{
-    return as_float_helper<float>( func, s, idx, wcstof );
-}
+// template<>
+// inline
+// float
+// as_float( const string& func, const wstring& s, size_t* idx )
+// {
+//     return as_float_helper<float>( func, s, idx, wcstof );
+// }
 
-template<>
-inline
-double
-as_float( const string& func, const wstring& s, size_t* idx )
-{
-    return as_float_helper<double>( func, s, idx, wcstod );
-}
+// template<>
+// inline
+// double
+// as_float( const string& func, const wstring& s, size_t* idx )
+// {
+//     return as_float_helper<double>( func, s, idx, wcstod );
+// }
 
-template<>
-inline
-long double
-as_float( const string& func, const wstring& s, size_t* idx )
-{
-    return as_float_helper<long double>( func, s, idx, wcstold );
-}
+// template<>
+// inline
+// long double
+// as_float( const string& func, const wstring& s, size_t* idx )
+// {
+//     return as_float_helper<long double>( func, s, idx, wcstold );
+// }
 
 }  // unnamed namespace
 
@@ -312,41 +312,41 @@ stoull(const wstring& str, size_t* idx, int base)
     return as_integer<unsigned long long>( "stoull", str, idx, base );
 }
 
-float
-stof(const string& str, size_t* idx)
-{
-    return as_float<float>( "stof", str, idx );
-}
+// float
+// stof(const string& str, size_t* idx)
+// {
+//     return as_float<float>( "stof", str, idx );
+// }
 
-float
-stof(const wstring& str, size_t* idx)
-{
-    return as_float<float>( "stof", str, idx );
-}
+// float
+// stof(const wstring& str, size_t* idx)
+// {
+//     return as_float<float>( "stof", str, idx );
+// }
 
-double
-stod(const string& str, size_t* idx)
-{
-    return as_float<double>( "stod", str, idx );
-}
+// double
+// stod(const string& str, size_t* idx)
+// {
+//     return as_float<double>( "stod", str, idx );
+// }
 
-double
-stod(const wstring& str, size_t* idx)
-{
-    return as_float<double>( "stod", str, idx );
-}
+// double
+// stod(const wstring& str, size_t* idx)
+// {
+//     return as_float<double>( "stod", str, idx );
+// }
 
-long double
-stold(const string& str, size_t* idx)
-{
-    return as_float<long double>( "stold", str, idx );
-}
+// long double
+// stold(const string& str, size_t* idx)
+// {
+//     return as_float<long double>( "stold", str, idx );
+// }
 
-long double
-stold(const wstring& str, size_t* idx)
-{
-    return as_float<long double>( "stold", str, idx );
-}
+// long double
+// stold(const wstring& str, size_t* idx)
+// {
+//     return as_float<long double>( "stold", str, idx );
+// }
 
 // to_string
 
@@ -452,12 +452,12 @@ wstring to_wstring(unsigned long val)      { return i_to_string<wstring>(val); }
 wstring to_wstring(unsigned long long val) { return i_to_string<wstring>(val); }
 
 
-string  to_string (float val)       { return as_string(snprintf,       initial_string< string>()(),   "%f", val); }
-string  to_string (double val)      { return as_string(snprintf,       initial_string< string>()(),   "%f", val); }
-string  to_string (long double val) { return as_string(snprintf,       initial_string< string>()(),  "%Lf", val); }
+// string  to_string (float val)       { return as_string(snprintf,       initial_string< string>()(),   "%f", val); }
+// string  to_string (double val)      { return as_string(snprintf,       initial_string< string>()(),   "%f", val); }
+// string  to_string (long double val) { return as_string(snprintf,       initial_string< string>()(),  "%Lf", val); }
 
-wstring to_wstring(float val)       { return as_string(get_swprintf(), initial_string<wstring>()(),  L"%f", val); }
-wstring to_wstring(double val)      { return as_string(get_swprintf(), initial_string<wstring>()(),  L"%f", val); }
-wstring to_wstring(long double val) { return as_string(get_swprintf(), initial_string<wstring>()(), L"%Lf", val); }
+// wstring to_wstring(float val)       { return as_string(get_swprintf(), initial_string<wstring>()(),  L"%f", val); }
+// wstring to_wstring(double val)      { return as_string(get_swprintf(), initial_string<wstring>()(),  L"%f", val); }
+// wstring to_wstring(long double val) { return as_string(get_swprintf(), initial_string<wstring>()(), L"%Lf", val); }
 
 _LIBCPP_END_NAMESPACE_STD

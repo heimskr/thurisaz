@@ -4351,9 +4351,9 @@ _LIBCPP_FUNC_VIS unsigned long      stoul (const string& __str, size_t* __idx = 
 _LIBCPP_FUNC_VIS long long          stoll (const string& __str, size_t* __idx = nullptr, int __base = 10);
 _LIBCPP_FUNC_VIS unsigned long long stoull(const string& __str, size_t* __idx = nullptr, int __base = 10);
 
-_LIBCPP_FUNC_VIS float       stof (const string& __str, size_t* __idx = nullptr);
-_LIBCPP_FUNC_VIS double      stod (const string& __str, size_t* __idx = nullptr);
-_LIBCPP_FUNC_VIS long double stold(const string& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS float       stof (const string& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS double      stod (const string& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS long double stold(const string& __str, size_t* __idx = nullptr);
 
 _LIBCPP_FUNC_VIS string to_string(int __val);
 _LIBCPP_FUNC_VIS string to_string(unsigned __val);
@@ -4361,9 +4361,9 @@ _LIBCPP_FUNC_VIS string to_string(long __val);
 _LIBCPP_FUNC_VIS string to_string(unsigned long __val);
 _LIBCPP_FUNC_VIS string to_string(long long __val);
 _LIBCPP_FUNC_VIS string to_string(unsigned long long __val);
-_LIBCPP_FUNC_VIS string to_string(float __val);
-_LIBCPP_FUNC_VIS string to_string(double __val);
-_LIBCPP_FUNC_VIS string to_string(long double __val);
+// _LIBCPP_FUNC_VIS string to_string(float __val);
+// _LIBCPP_FUNC_VIS string to_string(double __val);
+// _LIBCPP_FUNC_VIS string to_string(long double __val);
 
 _LIBCPP_FUNC_VIS int                stoi  (const wstring& __str, size_t* __idx = nullptr, int __base = 10);
 _LIBCPP_FUNC_VIS long               stol  (const wstring& __str, size_t* __idx = nullptr, int __base = 10);
@@ -4371,9 +4371,9 @@ _LIBCPP_FUNC_VIS unsigned long      stoul (const wstring& __str, size_t* __idx =
 _LIBCPP_FUNC_VIS long long          stoll (const wstring& __str, size_t* __idx = nullptr, int __base = 10);
 _LIBCPP_FUNC_VIS unsigned long long stoull(const wstring& __str, size_t* __idx = nullptr, int __base = 10);
 
-_LIBCPP_FUNC_VIS float       stof (const wstring& __str, size_t* __idx = nullptr);
-_LIBCPP_FUNC_VIS double      stod (const wstring& __str, size_t* __idx = nullptr);
-_LIBCPP_FUNC_VIS long double stold(const wstring& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS float       stof (const wstring& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS double      stod (const wstring& __str, size_t* __idx = nullptr);
+// _LIBCPP_FUNC_VIS long double stold(const wstring& __str, size_t* __idx = nullptr);
 
 _LIBCPP_FUNC_VIS wstring to_wstring(int __val);
 _LIBCPP_FUNC_VIS wstring to_wstring(unsigned __val);
@@ -4381,9 +4381,9 @@ _LIBCPP_FUNC_VIS wstring to_wstring(long __val);
 _LIBCPP_FUNC_VIS wstring to_wstring(unsigned long __val);
 _LIBCPP_FUNC_VIS wstring to_wstring(long long __val);
 _LIBCPP_FUNC_VIS wstring to_wstring(unsigned long long __val);
-_LIBCPP_FUNC_VIS wstring to_wstring(float __val);
-_LIBCPP_FUNC_VIS wstring to_wstring(double __val);
-_LIBCPP_FUNC_VIS wstring to_wstring(long double __val);
+// _LIBCPP_FUNC_VIS wstring to_wstring(float __val);
+// _LIBCPP_FUNC_VIS wstring to_wstring(double __val);
+// _LIBCPP_FUNC_VIS wstring to_wstring(long double __val);
 
 template<class _CharT, class _Traits, class _Allocator>
 _LIBCPP_FUNC_VIS
