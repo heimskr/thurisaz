@@ -1,6 +1,6 @@
 EMIT		:= clang++ -S -emit-llvm -std=c++2a -nostdlib -fno-builtin -Iinclude -Iinclude/libcxx -fno-exceptions  \
 			   -fno-rtti -I./musl/arch/x86_64 -I./musl/arch/generic -I./musl/obj/src/internal -I./musl/src/include \
-			   -I./musl/src/internal -I./musl/obj/include -I./musl/include -D_GNU_SOURCE
+			   -I./musl/src/internal -I./musl/obj/include -I./musl/include -D_GNU_SOURCE -Iinclude/musl
 SOURCES		:= $(shell find src/*.cpp src/**/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
 LINKED		:= Thurisaz.ll
