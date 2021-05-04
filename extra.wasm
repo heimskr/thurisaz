@@ -1,9 +1,16 @@
 #data
 
 __errno__: (8)
+__assertion_failed: "Assertion failed!\n"
 
 #code
 
 sub _Z17___errno_locationv() {
 	&__errno__ -> $r0
+}
+
+sub __assert_fail() {
+	&__assertion_failed -> $a0
+	:: strprint
+	<halt>
 }

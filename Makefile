@@ -1,25 +1,33 @@
-EMIT		:= clang++ -S -emit-llvm -std=c++2a -nostdlib -fno-builtin -Iinclude -Iinclude/libcxx -fno-exceptions  \
-			   -fno-rtti -I./musl/arch/x86_64 -I./musl/arch/generic -I./musl/obj/src/internal -I./musl/src/include \
-			   -I./musl/src/internal -I./musl/obj/include -I./musl/include -D_GNU_SOURCE -Iinclude/musl
-SOURCES		:= $(shell find src/*.cpp src/**/*.cpp)
+EMIT		:= clang++ -S -emit-llvm -std=c++2a -nostdlib -fno-builtin -Iinclude -fno-exceptions -fno-rtti
+SOURCES		:= $(shell find src/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
-LINKED		:= Thurisaz.ll
-WASM		:= Thurisaz.wasm
-OUTPUT		:= Thurisaz.why
+LINKED		:= main.ll
+WASM		:= main.wasm
+OUTPUT		:= $(WASM:.wasm=.why)
+EXTRA		:= extra.wasm
+EXTRA_WHY	:= $(EXTRA:.wasm=.why)
+FINAL		:= Thurisaz.why
 LLVMLINK	?= llvm-link
+
 
 .PHONY: linked wasm clean
 
 %.ll: %.cpp
 	$(EMIT) -Iinclude $< -o $@
 
-all: $(OUTPUT)
+all: $(FINAL)
+
+$(FINAL): $(OUTPUT) $(EXTRA_WHY)
+	wld $^ -o $@
+
+$(EXTRA_WHY): $(EXTRA)
+	wasmc $< $@
 
 $(OUTPUT): $(WASM)
-	wasmc $(WASM) $(OUTPUT)
+	wasmc $< $@
 
 $(WASM): $(LINKED)
-	ll2w $(LINKED) > $(WASM)
+	ll2w $< > $@
 
 $(LINKED): $(SOURCES:.cpp=.ll)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)
