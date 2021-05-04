@@ -1,5 +1,6 @@
 #include "P0Wrapper.h"
 #include "Print.h"
+#include "printf.h"
 
 void pagefault();
 
@@ -31,19 +32,16 @@ int main() {
 	*(uint64_t *) (start + 2048 * 3) = (start + 2048 * 4) | P0Wrapper::PRESENT; // P3E for 0x00000000xxxxxxxx
 	*(uint64_t *) (start + 2048 * 4) = (start + 2048 * 5) | P0Wrapper::PRESENT; // P4E for 0x0000000000xxxxxx
 	// P5E for 0x000000000000xxxx
-	*(uint64_t *) (start + 2048 * 5) = 0 | P0Wrapper::EXECUTABLE | P0Wrapper::WRITABLE | P0Wrapper::PRESENT;
+	*(uint64_t *) (start + 2048 * 5 + 0) = 0 | P0Wrapper::EXECUTABLE | P0Wrapper::WRITABLE | P0Wrapper::PRESENT;
+	*(uint64_t *) (start + 2048 * 5 + 1) = 0 | P0Wrapper::EXECUTABLE | P0Wrapper::WRITABLE | P0Wrapper::PRESENT;
 
-	void *stack;
-	asm ("? mem -> %0" : "=r"(stack));
-	strprint("[ ");
-	prd(P0Wrapper::p0Offset(stack)); prc(' ');
-	prd(P0Wrapper::p1Offset(stack)); prc(' ');
-	prd(P0Wrapper::p2Offset(stack)); prc(' ');
-	prd(P0Wrapper::p3Offset(stack)); prc(' ');
-	prd(P0Wrapper::p4Offset(stack)); prc(' ');
-	prd(P0Wrapper::p5Offset(stack)); prc(' ');
-	prd(P0Wrapper::pageOffset(stack));
-	strprint(" ]\n");
+	uint64_t memsize;
+	asm ("? mem -> %0" : "=r"(memsize));
+	void *stack = (void *) memsize;
+	printf("[%u, %u, %u, %u, %u, %u, %u]\n",
+		P0Wrapper::p0Offset(stack), P0Wrapper::p1Offset(stack), P0Wrapper::p2Offset(stack), P0Wrapper::p3Offset(stack),
+		P0Wrapper::p4Offset(stack), P0Wrapper::p5Offset(stack), P0Wrapper::pageOffset(stack));
+
 
 	// *(uint64_t *) (65536 + P0Wrapper::p0Offset(stack)) = (65536 + 2048 * 6) | P0Wrapper::PRESENT;
 
