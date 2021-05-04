@@ -1,6 +1,5 @@
 #include "P0Wrapper.h"
 #include "Print.h"
-#include <string>
 
 void pagefault();
 
@@ -25,26 +24,26 @@ int main() {
 		prc('\n');
 	}
 
-	*(uint64_t *) (65536 + 2048 * 0) = (65536 + 2048 * 1) | P0Wrapper::PRESENT; // P0E for 0x00xxxxxxxxxxxxxx
-	*(uint64_t *) (65536 + 2048 * 1) = (65536 + 2048 * 2) | P0Wrapper::PRESENT; // P1E for 0x0000xxxxxxxxxxxx
-	*(uint64_t *) (65536 + 2048 * 2) = (65536 + 2048 * 3) | P0Wrapper::PRESENT; // P2E for 0x000000xxxxxxxxxx
-	*(uint64_t *) (65536 + 2048 * 3) = (65536 + 2048 * 4) | P0Wrapper::PRESENT; // P3E for 0x00000000xxxxxxxx
-	*(uint64_t *) (65536 + 2048 * 4) = (65536 + 2048 * 5) | P0Wrapper::PRESENT; // P4E for 0x0000000000xxxxxx
+	constexpr int start = 65536;
+	*(uint64_t *) (start + 2048 * 0) = (start + 2048 * 1) | P0Wrapper::PRESENT; // P0E for 0x00xxxxxxxxxxxxxx
+	*(uint64_t *) (start + 2048 * 1) = (start + 2048 * 2) | P0Wrapper::PRESENT; // P1E for 0x0000xxxxxxxxxxxx
+	*(uint64_t *) (start + 2048 * 2) = (start + 2048 * 3) | P0Wrapper::PRESENT; // P2E for 0x000000xxxxxxxxxx
+	*(uint64_t *) (start + 2048 * 3) = (start + 2048 * 4) | P0Wrapper::PRESENT; // P3E for 0x00000000xxxxxxxx
+	*(uint64_t *) (start + 2048 * 4) = (start + 2048 * 5) | P0Wrapper::PRESENT; // P4E for 0x0000000000xxxxxx
 	// P5E for 0x000000000000xxxx
-	*(uint64_t *) (65536 + 2048 * 5) = 0 | P0Wrapper::EXECUTABLE | P0Wrapper::WRITABLE | P0Wrapper::PRESENT;
+	*(uint64_t *) (start + 2048 * 5) = 0 | P0Wrapper::EXECUTABLE | P0Wrapper::WRITABLE | P0Wrapper::PRESENT;
 
-	void *stack = (void *) 1'000'000;
+	void *stack;
+	asm ("? mem -> %0" : "=r"(stack));
 	strprint("[ ");
 	prd(P0Wrapper::p0Offset(stack)); prc(' ');
 	prd(P0Wrapper::p1Offset(stack)); prc(' ');
 	prd(P0Wrapper::p2Offset(stack)); prc(' ');
 	prd(P0Wrapper::p3Offset(stack)); prc(' ');
 	prd(P0Wrapper::p4Offset(stack)); prc(' ');
-	prd(P0Wrapper::p5Offset(stack));
+	prd(P0Wrapper::p5Offset(stack)); prc(' ');
+	prd(P0Wrapper::pageOffset(stack));
 	strprint(" ]\n");
-
-	std::string foo = "Hello\n";
-	strprint(foo.c_str());
 
 	// *(uint64_t *) (65536 + P0Wrapper::p0Offset(stack)) = (65536 + 2048 * 6) | P0Wrapper::PRESENT;
 
