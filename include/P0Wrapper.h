@@ -34,15 +34,15 @@ struct P0Wrapper {
 };
 
 inline void __attribute__((naked, always_inline)) savePaging() {
-	asm("page -> $k0");
+	asm("%%page -> $k0");
 }
 
 inline void __attribute__((naked, always_inline)) restorePaging() {
 	asm(": restorePaging_on if $k0 \
-	     page off                  \
+	     %%page off                \
 	     : restorePaging_end       \
 	     @restorePaging_on         \
-	     page on                   \
+	     %%page on                 \
 	     @restorePaging_end        \
 	     <>");
 }

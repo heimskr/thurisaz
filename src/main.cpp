@@ -8,7 +8,7 @@ void (*table[])() = {0, 0, 0, 0, pagefault, 0};
 
 int main() {
 	strprint("Hello, world!\n");
-	asm("rit table");
+	asm("%%rit table");
 	prd(*((volatile long *) 1));
 	prc('\n');
 
@@ -46,7 +46,7 @@ int main() {
 	// *(uint64_t *) (65536 + P0Wrapper::p0Offset(stack)) = (65536 + 2048 * 6) | P0Wrapper::PRESENT;
 
 
-	asm("page on");
+	asm("%%page on");
 	prd(*((volatile long *) 1));
 	prc('\n');
 }

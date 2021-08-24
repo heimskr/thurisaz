@@ -3,7 +3,7 @@
 P0Wrapper::P0Wrapper(uint64_t *entries_): entries(entries_) {}
 
 void P0Wrapper::set() {
-	asm("setpt %0" :: "r"(entries));
+	asm("%%setpt %0" :: "r"(entries));
 }
 
 unsigned char P0Wrapper::p0Offset(void *addr) {

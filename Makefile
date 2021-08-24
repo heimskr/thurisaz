@@ -1,4 +1,4 @@
-EMIT		:= clang++ -S -emit-llvm -std=c++2a -nostdlib -fno-builtin -Iinclude -fno-exceptions -fno-rtti
+EMIT		:= clang++ -S -emit-llvm -std=c++20 -g -nostdlib -fno-builtin -Iinclude -fno-exceptions -fno-rtti
 SOURCES		:= $(shell find src/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
 LINKED		:= main.ll
@@ -18,13 +18,13 @@ LLVMLINK	?= llvm-link
 all: $(FINAL)
 
 $(FINAL): $(OUTPUT) $(EXTRA_WHY)
-	wld $^ -o $@
+	wasmc++ -l $@ $^
 
 $(EXTRA_WHY): $(EXTRA)
-	wasmc $< $@
+	wasmc++ $< $@
 
 $(OUTPUT): $(WASM)
-	wasmc $< $@
+	wasmc++ $< $@
 
 $(WASM): $(LINKED)
 	ll2w $< > $@
