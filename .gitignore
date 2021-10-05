@@ -5,3 +5,5 @@
 *.wasm
 *.why
 !extra.wasm
+.DS_Store
+
