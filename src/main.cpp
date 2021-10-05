@@ -12,12 +12,16 @@ int main() {
 	prd(*((volatile long *) 1));
 	prc('\n');
 
-	P0Wrapper wrapper((uint64_t *) 65536);
+	char *wrapper_start;
+	asm("$g -> %0" : "=r"(wrapper_start));
+
+	P0Wrapper wrapper((uint64_t *) wrapper_start);
+	strprint("wrapper.entries: ");
 	prd((long) wrapper.entries);
 	prc('\n');
 	wrapper.set();
 	uint64_t p5e;
-	if (!wrapper.getP5E((void *) 65536, p5e)) {
+	if (!wrapper.getP5E(wrapper_start, p5e)) {
 		strprint("No\n");
 	} else {
 		strprint("P5E: ");
@@ -25,7 +29,7 @@ int main() {
 		prc('\n');
 	}
 
-	constexpr int start = 65536;
+	uint64_t start = (uint64_t) wrapper_start;
 	*(uint64_t *) (start + 2048 * 0) = (start + 2048 * 1) | P0Wrapper::PRESENT; // P0E for 0x00xxxxxxxxxxxxxx
 	*(uint64_t *) (start + 2048 * 1) = (start + 2048 * 2) | P0Wrapper::PRESENT; // P1E for 0x0000xxxxxxxxxxxx
 	*(uint64_t *) (start + 2048 * 2) = (start + 2048 * 3) | P0Wrapper::PRESENT; // P2E for 0x000000xxxxxxxxxx
@@ -38,12 +42,15 @@ int main() {
 	uint64_t memsize;
 	asm ("? mem -> %0" : "=r"(memsize));
 	void *stack = (void *) memsize;
-	printf("[%u, %u, %u, %u, %u, %u, %u]\n",
+	prc('<');
+	printf("[%u, %u, %u, %u, %u, %u, %u]",
 		P0Wrapper::p0Offset(stack), P0Wrapper::p1Offset(stack), P0Wrapper::p2Offset(stack), P0Wrapper::p3Offset(stack),
 		P0Wrapper::p4Offset(stack), P0Wrapper::p5Offset(stack), P0Wrapper::pageOffset(stack));
+	prc('>');
+	prc('\n');
 
 
-	// *(uint64_t *) (65536 + P0Wrapper::p0Offset(stack)) = (65536 + 2048 * 6) | P0Wrapper::PRESENT;
+	*(uint64_t *) (wrapper_start + P0Wrapper::p0Offset(stack)) = uint64_t(wrapper_start + 2048 * 6) | P0Wrapper::PRESENT;
 
 
 	asm("%%page on");

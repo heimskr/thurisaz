@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "stdint.h"
 
 struct P0Wrapper {
 	constexpr static uint64_t PRESENT    = 1;
