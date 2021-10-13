@@ -6,7 +6,6 @@
 void pagefault();
 
 void (*table[])() = {0, 0, 0, 0, pagefault, 0};
-Memory memory;
 
 template <typename T>
 inline T upalign(T num, long alignment) {
@@ -39,6 +38,7 @@ int main() {
 
 	uint64_t memsize;
 	asm("? mem -> %0" : "=r"(memsize));
+	Memory memory;
 	memory.setBounds(wrapper_start + 2048, (char *) (memsize - 1));
 
 
@@ -65,7 +65,8 @@ int main() {
 
 	int *foo = new int[42];
 	int *bar = new int[666];
-	printf("foo(0x%lx), bar(0x%lx)\n", foo, bar);
+	int *baz = new int;
+	printf("foo(%ld), bar(%ld), baz(%ld)\n", foo, bar, baz);
 
 
 	asm("%%page on");

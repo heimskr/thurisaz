@@ -5,8 +5,6 @@
 
 #define MEMORY_ALIGN 32
 
-void spin(size_t time = 3);
-
 class Memory {
 	public:
 		struct BlockMeta {
@@ -16,7 +14,7 @@ class Memory {
 		};
 
 	private:
-		static constexpr size_t PAGE_LENGTH = 4096;
+		static constexpr size_t PAGE_LENGTH = 65536;
 
 		// size_t align;
 		size_t allocated = 0;
