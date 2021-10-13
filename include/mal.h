@@ -7,6 +7,8 @@
 
 class Memory {
 	public:
+		static constexpr size_t PAGE_LENGTH = 65536;
+
 		struct BlockMeta {
 			size_t size;
 			BlockMeta *next;
@@ -14,15 +16,13 @@ class Memory {
 		};
 
 	private:
-		static constexpr size_t PAGE_LENGTH = 65536;
-
 		// size_t align;
 		size_t allocated = 0;
 		char *start, *high, *end;
 		BlockMeta *base = nullptr;
 		uintptr_t highestAllocated = 0;
 
-		uintptr_t realign(uintptr_t);
+		static uintptr_t realign(uintptr_t);
 		BlockMeta * findFreeBlock(BlockMeta * &last, size_t);
 		BlockMeta * requestSpace(BlockMeta *last, size_t);
 		void split(BlockMeta &, size_t);

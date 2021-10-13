@@ -1,4 +1,4 @@
-EMIT		:= clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -g -nostdlib -fno-builtin -Iinclude -Iinclude/lib -fno-exceptions -fno-rtti
+EMIT		:= clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -O3 -g -nostdlib -fno-builtin -Iinclude -Iinclude/lib -fno-exceptions -fno-rtti
 SOURCES		:= $(shell find src/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
 LINKED		:= main.ll
