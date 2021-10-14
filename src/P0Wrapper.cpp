@@ -52,9 +52,7 @@ bool P0Wrapper::getP1E(void *addr, uint64_t &out) {
 
 bool P0Wrapper::getP2E(void *addr, uint64_t &out) {
 	uint64_t p1e;
-	if (!getP1E(addr, p1e))
-		return false;
-	if (!isPresent(p1e))
+	if (!getP1E(addr, p1e) || !isPresent(p1e))
 		return false;
 	out = ((uint64_t *) (p1e & ~0x7ff))[p2Offset(addr)];
 	return true;
@@ -62,9 +60,7 @@ bool P0Wrapper::getP2E(void *addr, uint64_t &out) {
 
 bool P0Wrapper::getP3E(void *addr, uint64_t &out) {
 	uint64_t p2e;
-	if (!getP2E(addr, p2e))
-		return false;
-	if (!isPresent(p2e))
+	if (!getP2E(addr, p2e) || !isPresent(p2e))
 		return false;
 	out = ((uint64_t *) (p2e & ~0x7ff))[p3Offset(addr)];
 	return true;
@@ -72,9 +68,7 @@ bool P0Wrapper::getP3E(void *addr, uint64_t &out) {
 
 bool P0Wrapper::getP4E(void *addr, uint64_t &out) {
 	uint64_t p3e;
-	if (!getP3E(addr, p3e))
-		return false;
-	if (!isPresent(p3e))
+	if (!getP3E(addr, p3e) || !isPresent(p3e))
 		return false;
 	out = ((uint64_t *) (p3e & ~0x7ff))[p4Offset(addr)];
 	return true;
@@ -82,9 +76,7 @@ bool P0Wrapper::getP4E(void *addr, uint64_t &out) {
 
 bool P0Wrapper::getP5E(void *addr, uint64_t &out) {
 	uint64_t p4e;
-	if (!getP4E(addr, p4e))
-		return false;
-	if (!isPresent(p4e))
+	if (!getP4E(addr, p4e) || !isPresent(p4e))
 		return false;
 	out = ((uint64_t *) (p4e & ~0x7ff))[p5Offset(addr)];
 	return true;

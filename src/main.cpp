@@ -1,27 +1,17 @@
 #include "mal.h"
 #include "P0Wrapper.h"
+#include "Paging.h"
 #include "Print.h"
 #include "printf.h"
+#include "util.h"
 
 void pagefault();
 
 void (*table[])() = {0, 0, 0, 0, pagefault, 0};
 
-template <typename T>
-inline T upalign(T num, long alignment) {
-	return num + ((alignment - (num % alignment)) % alignment);
-}
-
-template <typename T>
-inline T updiv(T n, long d) {
-	return n / d + (n % d? 1 : 0);
-}
-
 extern "C" void kernel_main() {
 	strprint("Hello, world!\n");
 	asm("%%rit table");
-	prd(*((volatile long *) 1));
-	prc('\n');
 
 	char *global_start;
 	asm("$g -> %0" : "=r"(global_start));
@@ -45,19 +35,28 @@ extern "C" void kernel_main() {
 	asm("? mem -> %0" : "=r"(memsize));
 
 	if (memsize / 10 < (uintptr_t) global_start) {
-		strprint("\e[31mERROR\e[39m: Kernel is larger than 10% of main memory.\n       Allocate more memory and restart.\n");
+		strprint("\e[31mERROR\e[39m: Kernel is larger than 10% of main memory.\n"
+			"       Allocate more memory and restart.\n");
 		asm("<halt>");
 	}
 
-	char *bitmap_start = (char *) (memsize / 10);
-	char *kernel_heap_start = bitmap_start + memsize / 65536 / 8;
-	char *kernel_stack_start = (char *) (memsize * 2 / 5);
-	char *application_start = (char *) (memsize / 2);
+	char * const bitmap_start = (char *) (memsize / 10);
+	const size_t page_count = updiv(memsize, 65536);
+	char * const kernel_heap_start = bitmap_start + page_count / 8;
+	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
+	char * const application_start = (char *) (memsize / 2);
+	const size_t table_count = Paging::getTableCount(page_count);
 
 	Memory memory;
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
 
-	printf("[%lx, %lx]\n", kernel_heap_start, kernel_stack_start);
+	printf("Table count: %lu\n", table_count);
+
+	const size_t tables_size = table_count * 2048;
+	void *tables = malloc(tables_size);
+	asm("memset %0 x $0 -> %1" :: "r"(tables_size), "r"(tables));
+	asm("%%setpt %0" :: "r"(tables));
+
 
 
 

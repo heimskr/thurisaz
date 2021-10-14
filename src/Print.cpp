@@ -1,6 +1,6 @@
 #include "Print.h"
 
-void __attribute__((naked)) strprint(const char *str) {
+extern "C" void __attribute__((naked)) strprint(const char *str) {
 	asm("<>; @_strprint_loop      \
 	     [$a0] -> $ma /b          \
 	     : _strprint_print if $ma \
