@@ -27,7 +27,7 @@ $(OUTPUT): $(WASM)
 	wasmc++ $< $@
 
 $(WASM): $(LINKED)
-	ll2w $< > $@
+	ll2w $< -main > $@
 
 $(LINKED): $(SOURCES:.cpp=.ll)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)

@@ -13,3 +13,9 @@ __assertion_failed: "Assertion failed!\n"
 	&__assertion_failed -> $a0
 	:: strprint
 	<halt>
+
+@main
+	? mem -> $sp
+	$sp / 2 -> $sp
+	:: kernel_main
+	<halt>
