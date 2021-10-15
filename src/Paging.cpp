@@ -1,7 +1,11 @@
 #include <stdint.h>
 
 #include "Paging.h"
+#include "Print.h"
+#include "printf.h"
 #include "util.h"
+
+
 
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
@@ -12,9 +16,14 @@ namespace Paging {
 		return sum;
 	}
 
-	void Tables::reset() {
-		asm("memset %0 x $0 -> %1" :: "r"(pageCount * 2048), "r"(tables));
+	void Tables::reset(bool zero_out_tables) {
+		if (zero_out_tables) {
+			printf("Resetting tables (%lu bytes).\n", pageCount * 2048);
+			asm("memset %0 x $0 -> %1" :: "r"(pageCount * 2048), "r"(tables));
+		}
+		strprint("Resetting bitmap.\n");
 		asm("memset %0 x $0 -> %1" :: "r"(updiv(pageCount, 8)), "r"(bitmap));
+		strprint("Updating bitmap.\n");
 		uintptr_t global;
 		asm("$g -> %0" : "=r"(global));
 		const size_t global_pages = updiv(global, 65536);
@@ -22,6 +31,7 @@ namespace Paging {
 		for (size_t i = 0; i < global_pages / 64; ++i)
 			asm("~$0 -> %0" : "=r"(bitmap[i]));
 		for (size_t i = 0; i < global_pages % 64; ++i)
-			bitmap[global_pages / 64 + 1] |= one << i;
+			bitmap[global_pages / 64] |= one << i;
+		strprint("Reset complete.\n");
 	}
 }

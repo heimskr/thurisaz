@@ -31,6 +31,9 @@ struct P0Wrapper {
 	bool getP4E(void *, uint64_t &);
 	bool getP5E(void *, uint64_t &);
 	bool hasPage(void *);
+
+	uintptr_t assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4, uint8_t index5,
+	                 void *physical, uint8_t extra_meta = 0);
 };
 
 inline void __attribute__((naked, always_inline)) savePaging() {

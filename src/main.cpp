@@ -53,10 +53,18 @@ extern "C" void kernel_main() {
 	printf("Table count: %lu\n", table_count);
 
 	const size_t tables_size = table_count * 2048;
-	void *tables = malloc(tables_size);
-	asm("memset %0 x $0 -> %1" :: "r"(tables_size), "r"(tables));
+	uint64_t *tables = (uint64_t *) malloc(tables_size);
 	asm("%%setpt %0" :: "r"(tables));
 
+	uint64_t * const bitmap = (uint64_t *) bitmap_start;
+	Paging::Tables table_wrapper(tables, bitmap, page_count);
+	table_wrapper.reset();
+
+	for (int i = 0; bitmap[i]; ++i)
+		printf("[%2d] %064b\n", i, bitmap[i]);
+	strprint("Done.\n");
+
+	P0Wrapper p0wrapper(tables);
 
 
 
