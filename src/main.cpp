@@ -71,8 +71,9 @@ extern "C" void kernel_main() {
 
 	int foo = 42;
 
-	asm("$sp + %0 -> $k1" :: "r"(table_wrapper.pmmStart));
-	asm("$fp + %0 -> $k2" :: "r"(table_wrapper.pmmStart));
+	asm("$sp -> $k1");
+	asm("$fp -> $k2");
+	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
 	if (rt_addr) {
 		*rt_addr += table_wrapper.pmmStart;
 	} else {
@@ -81,14 +82,16 @@ extern "C" void kernel_main() {
 	}
 
 	asm("%%page on");
-	asm("$k1 -> $sp");
-	asm("$k2 -> $fp");
+	asm("$k1 + $k3 -> $sp");
+	asm("$k2 + $k3 -> $fp");
 
-	// printf("foo[%d]\n", foo); // nope
+	([](char *tptr) {
+		long k3;
+		asm("$k3 -> %0" : "=r"(k3));
 
-
-
-
+		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + k3);
+		printf("k3[%ld], pmmStart[%ld]\n", k3, wrapper_ref.pmmStart);
+	})((char *) &table_wrapper);
 
 	// savePaging();
 	// asm("%%page on");
