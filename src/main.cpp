@@ -67,6 +67,10 @@ extern "C" void kernel_main() {
 
 	P0Wrapper p0wrapper(tables);
 
+	long free_index = table_wrapper.findFree();
+	printf("Free: %ld\nMarking free.\n", free_index);
+	table_wrapper.mark(free_index, true);
+	printf("Free: %ld\n", table_wrapper.findFree());
 
 
 

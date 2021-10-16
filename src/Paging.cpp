@@ -46,6 +46,14 @@ namespace Paging {
 		return -1;
 	}
 
+	void Tables::mark(size_t index, bool used) {
+		volatile long one = 1;
+		if (used)
+			bitmap[index / (8 * sizeof(Bitmap))] |= one << (index % (8 * sizeof(Bitmap)));
+		else
+			bitmap[index / (8 * sizeof(Bitmap))] &= ~(one << (index % (8 * sizeof(Bitmap))));
+	}
+
 	uintptr_t Tables::assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                         uint8_t index5, void *physical, uint8_t extra_meta) {
 		return 0;
