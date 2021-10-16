@@ -5,11 +5,12 @@
 #include "printf.h"
 #include "util.h"
 
+void timer();
 void pagefault();
 void inexec();
 void bwrite();
 
-void (*table[])() = {0, 0, 0, 0, pagefault, inexec, bwrite};
+void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite};
 
 extern "C" void kernel_main() {
 	long rt;
@@ -88,29 +89,18 @@ extern "C" void kernel_main() {
 	asm("$k2 + $k3 -> $fp");
 
 	([](char *tptr, char *mptr) {
-		long k3;
-		asm("$k3 -> %0" : "=r"(k3));
-		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + k3);
-		printf("k3[%lx], pmmStart[%lx]\n", k3, wrapper_ref.pmmStart);
+		long pmm_start;
+		asm("$k3 -> %0" : "=r"(pmm_start));
+		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
+		printf("k3[%lx], pmmStart[%lx]\n", pmm_start, wrapper_ref.pmmStart);
 
-		Memory &memory = *(Memory *) (mptr + k3);
-		global_memory = (Memory *) ((char *) global_memory + k3);
-		memory.setBounds(memory.start + k3, memory.high + k3);
-		int *ptr = new int;
-		printf("<%lx>\n", ptr);
-		prx((long) ptr);
-		prc('\n');
+		Memory &memory = *(Memory *) (mptr + pmm_start);
+		global_memory = (Memory *) ((char *) global_memory + pmm_start);
+		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
+
+		asm("%time 2000000");
+		for (;;);
 	})((char *) &table_wrapper, (char *) &memory);
-
-	// savePaging();
-	// asm("%%page on");
-	// asm("<prx %0>" :: "r"(*((volatile long *) 8)));
-	// asm("10 -> $m0; <prc $m0>");
-	// restorePaging();
-}
-
-void __attribute__((naked)) pagefault() {
-	asm("63 -> $m0; <prc $m0>; 32 -> $m0; <prc $m0>; <prd $e0>; <prc $m0>; <prd $e1>; 10 -> $m0; <prc $m0>; <halt>");
 }
 
 void __attribute__((naked)) inexec() {
@@ -121,4 +111,13 @@ void __attribute__((naked)) inexec() {
 void __attribute__((naked)) bwrite() {
 	asm("<p \"BW\\n\">");
 	asm("<halt>");
+}
+
+void __attribute__((naked)) timer() {
+	asm("<p \"TI\">");
+	asm("<halt>");
+}
+
+void __attribute__((naked)) pagefault() {
+	asm("63 -> $m0; <prc $m0>; 32 -> $m0; <prc $m0>; <prd $e0>; <prc $m0>; <prd $e1>; 10 -> $m0; <prc $m0>; <halt>");
 }
