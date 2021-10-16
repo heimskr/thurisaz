@@ -17,6 +17,6 @@ __assertion_failed: "Assertion failed!\n"
 @main
 	? mem -> $sp
 	$sp / 2 -> $sp
-	0 -> $fp
+	0xcafef00d -> $fp
 	:: kernel_main
 	<halt>

@@ -31,12 +31,13 @@ namespace Paging {
 			Bitmap *bitmap;
 			size_t pageCount;
 			bool pmmReady = false;
-			uintptr_t pmmStart;
 			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
 			Entry addr2entry5(void *) const;
 
 		public:
+			uintptr_t pmmStart;
+
 			Tables() = delete;
 			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):
 			tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count), wrapper(tables_) {
