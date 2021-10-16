@@ -3,16 +3,9 @@
 #include "stdint.h"
 
 struct P0Wrapper {
-	constexpr static uint64_t PRESENT    = 1;
-	constexpr static uint64_t WRITABLE   = 2;
-	constexpr static uint64_t EXECUTABLE = 4;
-	constexpr static uint64_t USERPAGE   = 8;
-	constexpr static uint64_t ACCESSED   = 16;
-	constexpr static uint64_t MODIFIED   = 32;
-
 	uint64_t *entries;
 
-	P0Wrapper(uint64_t *entries_);
+	P0Wrapper(void *entries_);
 	void set();
 	static unsigned char p0Offset(void *);
 	static unsigned char p1Offset(void *);

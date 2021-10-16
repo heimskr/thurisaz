@@ -53,24 +53,22 @@ extern "C" void kernel_main() {
 
 	printf("Table count: %lu\n", table_count);
 
-	const size_t tables_size = table_count * 2048;
-	uint64_t *tables = (uint64_t *) malloc(tables_size);
+	// + 2047: hack to get around the current lack of aligned malloc.
+	const size_t tables_size = table_count * 2048 + 2047;
+	uint64_t *tables = (uint64_t *) upalign((uintptr_t) malloc(tables_size), 2048);
+	// The first table is P0.
 	asm("%%setpt %0" :: "r"(tables));
 
 	uint64_t * const bitmap = (uint64_t *) bitmap_start;
 	Paging::Tables table_wrapper(tables, bitmap, page_count);
 	table_wrapper.reset();
+	table_wrapper.initPMM();
 
 	for (int i = 0; bitmap[i]; ++i)
 		printf("[%2d] %064b\n", i, bitmap[i]);
 	strprint("Done.\n");
 
 	P0Wrapper p0wrapper(tables);
-
-	long free_index = table_wrapper.findFree();
-	printf("Free: %ld\nMarking free.\n", free_index);
-	table_wrapper.mark(free_index, true);
-	printf("Free: %ld\n", table_wrapper.findFree());
 
 
 

@@ -1,6 +1,6 @@
 #include "P0Wrapper.h"
 
-P0Wrapper::P0Wrapper(uint64_t *entries_): entries(entries_) {}
+P0Wrapper::P0Wrapper(void *entries_): entries((uint64_t *) entries_) {}
 
 void P0Wrapper::set() {
 	asm("%%setpt %0" :: "r"(entries));
