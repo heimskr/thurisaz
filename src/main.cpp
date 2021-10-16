@@ -96,7 +96,10 @@ extern "C" void kernel_main() {
 		Memory &memory = *(Memory *) (mptr + k3);
 		global_memory = (Memory *) ((char *) global_memory + k3);
 		memory.setBounds(memory.start + k3, memory.high + k3);
-		printf("<%lx>\n", new int);
+		int *ptr = new int;
+		printf("<%lx>\n", ptr);
+		prx((long) ptr);
+		prc('\n');
 	})((char *) &table_wrapper, (char *) &memory);
 
 	// savePaging();
