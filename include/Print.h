@@ -12,4 +12,8 @@ inline void __attribute__((naked, always_inline)) prx(long x) {
 	asm("<prx $a0>");
 }
 
+inline void __attribute__((naked, always_inline)) prb(long x) {
+	asm("<prb $a0>");
+}
+
 extern "C" void strprint(const char *str);

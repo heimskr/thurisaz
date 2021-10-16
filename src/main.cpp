@@ -43,25 +43,27 @@ extern "C" void kernel_main() {
 
 	char * const bitmap_start = (char *) (memsize / 10);
 	const size_t page_count = updiv(memsize, 65536);
-	char * const kernel_heap_start = bitmap_start + page_count / 8;
+	const size_t table_count = Paging::getTableCount(page_count);
+	const size_t tables_size = table_count * 2048 + 2047;
+	char * const page_tables_start = bitmap_start + page_count / 8;
+	char * const kernel_heap_start = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
 	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
 	char * const application_start = (char *) (memsize / 2);
-	const size_t table_count = Paging::getTableCount(page_count);
 
 	Memory memory;
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
 
 	printf("Table count: %lu\n", table_count);
 
-	// + 2047: hack to get around the current lack of aligned malloc.
-	const size_t tables_size = table_count * 2048 + 2047;
-	uint64_t *tables = (uint64_t *) upalign((uintptr_t) malloc(tables_size), 2048);
+	// + 2047: hack to add enough space for alignment.
+	uint64_t *tables = (uint64_t *) upalign((uintptr_t) page_tables_start, 2048);
 	// The first table is P0.
 	asm("%%setpt %0" :: "r"(tables));
 
 	uint64_t * const bitmap = (uint64_t *) bitmap_start;
 	Paging::Tables table_wrapper(tables, bitmap, page_count);
 	table_wrapper.reset();
+	table_wrapper.bootstrap();
 	table_wrapper.initPMM();
 
 	for (int i = 0; bitmap[i]; ++i)

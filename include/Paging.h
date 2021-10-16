@@ -34,6 +34,7 @@ namespace Paging {
 			uintptr_t pmmStart;
 			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
+			Entry addr2entry5(void *) const;
 
 		public:
 			Tables() = delete;
@@ -46,6 +47,8 @@ namespace Paging {
 
 			// Keep in mind that on startup, it's safe to assume that memory past *$g will be zeroed out.
 			void reset(bool zero_out_tables = false);
+			/** Identity maps the first 256 pages. */
+			void bootstrap();
 			void initPMM();
 
 			long findFree(size_t start = 0) const;

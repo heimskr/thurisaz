@@ -5,6 +5,9 @@
 #include "printf.h"
 #include "util.h"
 
+#define NOFREE() do { strprint("\e[31mERROR\e[39m: No free pages!\n"); asm("<halt>"); } while (false)
+#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~MASK04) | PRESENT)
+
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
 		size_t divisor = 256;
@@ -25,6 +28,19 @@ namespace Paging {
 		for (size_t i = 0; i < updiv(pageCount, 8 * sizeof(Bitmap)); ++i)
 			asm("$0 -> %0" : "=r"(bitmap[i]));
 		strprint("Reset complete.\n");
+	}
+
+	void Tables::bootstrap() {
+		// Assumes that the kernel isn't larger than 256 pages (16 MiB).
+		tables[0][0] = ADDR2ENTRY04(&tables[1]);
+		tables[1][0] = ADDR2ENTRY04(&tables[2]);
+		tables[2][0] = ADDR2ENTRY04(&tables[3]);
+		tables[3][0] = ADDR2ENTRY04(&tables[4]);
+		tables[4][0] = ADDR2ENTRY04(&tables[5]);
+		for (short i = 0; i < 256; ++i)
+			tables[5][i] = addr2entry5((void *) (PAGE_SIZE * i));
+		for (char i = 0; i < 4; ++i)
+			asm("$0 - 1 -> %0" : "=r"(bitmap[i]));
 	}
 
 	void Tables::initPMM() {
@@ -51,13 +67,13 @@ namespace Paging {
 	long Tables::findFree(size_t start) const {
 		volatile long negative_one = 0;
 		volatile long one = 1;
-		// +r constraints don't seem to work as of this writing.
-		asm("%1 - 1 -> %0" : "=r"(negative_one) : "r"(negative_one));
+		asm("$0 - 1 -> %0" : "=r"(negative_one));
 		for (size_t i = start; i < pageCount / (8 * sizeof(Bitmap)); ++i)
 			if (bitmap[i] != negative_one)
-				for (unsigned int j = 0; j < 8 * sizeof(Bitmap); ++j)
+				for (unsigned j = 0; j < 8 * sizeof(Bitmap); ++j) {
 					if ((bitmap[i] & (one << j)) == 0)
 						return i * 8 * sizeof(Bitmap) + j;
+				}
 		return -1;
 	}
 
@@ -80,29 +96,30 @@ namespace Paging {
 			return nullptr;
 
 		if (consecutive_count == 1) {
-			int free_index = findFree();
+			long free_index = findFree();
 			if (free_index == -1)
 				return nullptr;
 			mark(free_index, true);
-			return (void *) (pmmStart + free_index * PAGE_SIZE);
+			return (void *) (free_index * PAGE_SIZE);
 		}
 
-		int index = -1;
+		// TODO: verify.
+		long index = 0;
 		for (;;) {
-			index = findFree(index + 1);
-			for (size_t i = 1; i < consecutive_count; ++i)
+			index = findFree(index);
+			size_t i = 1;
+			for (; i < consecutive_count; ++i)
 				if (!isFree(index + i))
 					goto nope; // sorry
-			mark(index, true);
-			return (void *) (pmmStart + index * PAGE_SIZE);
+			for (size_t j = 0; j < consecutive_count; ++j)
+				mark(index + j, true);
+			return (void *) (index * PAGE_SIZE);
 			nope:
+			index += i;
 			continue;
 		}
 	}
 
-#define ACCESS(ptr) ((uint64_t *) ((uintptr_t) pmmStart + (uintptr_t) (ptr)))
-#define NOFREE() do { strprint("\e[31mERROR\e[39m: No free pages!\n"); asm("<halt>"); } while (false)
-#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~MASK04) | PRESENT)
 	uintptr_t Tables::assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                                  uint8_t index5, void *physical, uint8_t extra_meta) {
 		if (!(tables[0][index0] & PRESENT)) {
@@ -149,23 +166,6 @@ namespace Paging {
 			// Allocate a new page if the P5 entry doesn't have the present bit set (or, optionally, use a provided
 			// physical address).
 
-			auto addr2entry5 = [this](void *addr) -> Entry {
-				const uintptr_t low = (uintptr_t) addr - (uintptr_t) addr % PAGE_SIZE, high = low + PAGE_SIZE;
-				const uintptr_t code = (uintptr_t) codeStart, data = (uintptr_t) dataStart;
-
-				bool executable = codeStart <= addr && addr < dataStart;
-				if (!executable) {
-					executable = (low <= code && code < high) || (code <= low && low < data);
-				}
-
-				const bool writable = data < high;
-
-				// I'm aware that it's possible for a page to be both executable and writable if the code-data boundary
-				// falls within the page. There's nothing I can really do about it.
-
-				return ((Entry) addr) & ~MASK5 | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
-			};
-
 			if (physical)
 				return (p5[index5] = addr2entry5(physical)) & ~MASK5;
 
@@ -177,7 +177,24 @@ namespace Paging {
 
 		return NOT_ASSIGNED;
 	}
+
+	Entry Tables::addr2entry5(void *addr) const {
+		const uintptr_t low = (uintptr_t) addr - (uintptr_t) addr % PAGE_SIZE, high = low + PAGE_SIZE;
+		const uintptr_t code = (uintptr_t) codeStart, data = (uintptr_t) dataStart;
+
+		bool executable = codeStart <= addr && addr < dataStart;
+		if (!executable) {
+			executable = (low <= code && code < high) || (code <= low && low < data);
+		}
+
+		const bool writable = data < high;
+
+		// I'm aware that it's possible for a page to be both executable and writable if the code-data boundary
+		// falls within the page. There's nothing I can really do about it.
+
+		return ((Entry) addr) & ~MASK5 | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
+	}
+}
+
 #undef ADDR2ENTRY04
 #undef NOFREE
-#undef ACCESS
-}
