@@ -6,8 +6,10 @@
 #include "util.h"
 
 void pagefault();
+void inexec();
+void bwrite();
 
-void (*table[])() = {0, 0, 0, 0, pagefault, 0};
+void (*table[])() = {0, 0, 0, 0, pagefault, inexec, bwrite};
 
 extern "C" void kernel_main() {
 	long rt;
@@ -85,13 +87,17 @@ extern "C" void kernel_main() {
 	asm("$k1 + $k3 -> $sp");
 	asm("$k2 + $k3 -> $fp");
 
-	([](char *tptr) {
+	([](char *tptr, char *mptr) {
 		long k3;
 		asm("$k3 -> %0" : "=r"(k3));
-
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + k3);
-		printf("k3[%ld], pmmStart[%ld]\n", k3, wrapper_ref.pmmStart);
-	})((char *) &table_wrapper);
+		printf("k3[%lx], pmmStart[%lx]\n", k3, wrapper_ref.pmmStart);
+
+		Memory &memory = *(Memory *) (mptr + k3);
+		global_memory = (Memory *) ((char *) global_memory + k3);
+		memory.setBounds(memory.start + k3, memory.high + k3);
+		printf("<%lx>\n", new int);
+	})((char *) &table_wrapper, (char *) &memory);
 
 	// savePaging();
 	// asm("%%page on");
@@ -102,4 +108,14 @@ extern "C" void kernel_main() {
 
 void __attribute__((naked)) pagefault() {
 	asm("63 -> $m0; <prc $m0>; 32 -> $m0; <prc $m0>; <prd $e0>; <prc $m0>; <prd $e1>; 10 -> $m0; <prc $m0>; <halt>");
+}
+
+void __attribute__((naked)) inexec() {
+	asm("<p \"IE\\n\">");
+	asm("<halt>");
+}
+
+void __attribute__((naked)) bwrite() {
+	asm("<p \"BW\\n\">");
+	asm("<halt>");
 }

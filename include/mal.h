@@ -18,7 +18,6 @@ class Memory {
 	private:
 		// size_t align;
 		size_t allocated = 0;
-		char *start, *high, *end;
 		BlockMeta *base = nullptr;
 		uintptr_t highestAllocated = 0;
 
@@ -29,6 +28,8 @@ class Memory {
 		int merge();
 
 	public:
+		char *start, *high, *end;
+
 		Memory(const Memory &) = delete;
 		Memory(Memory &&) = delete;
 
