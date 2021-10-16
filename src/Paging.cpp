@@ -5,8 +5,6 @@
 #include "printf.h"
 #include "util.h"
 
-
-
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
 		size_t divisor = 256;
@@ -33,5 +31,23 @@ namespace Paging {
 		for (size_t i = 0; i < global_pages % 64; ++i)
 			bitmap[global_pages / 64] |= one << i;
 		strprint("Reset complete.\n");
+	}
+
+	long Tables::findFree(size_t start) {
+		volatile long negative_one = 0;
+		volatile long one = 1;
+		// +r constraints don't seem to work as of this writing.
+		asm("%1 - 1 -> %0" : "=r"(negative_one) : "r"(negative_one));
+		for (size_t i = start; i < pageCount / (8 * sizeof(Bitmap)); ++i)
+			if (bitmap[i] != negative_one)
+				for (unsigned int j = 0; j < 8 * sizeof(Bitmap); ++j)
+					if ((bitmap[i] & (one << j)) == 0)
+						return i * 8 * sizeof(Bitmap) + j;
+		return -1;
+	}
+
+	uintptr_t Tables::assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
+	                         uint8_t index5, void *physical, uint8_t extra_meta) {
+		return 0;
 	}
 }
