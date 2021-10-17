@@ -96,14 +96,25 @@ extern "C" void kernel_main() {
 		long pmm_start;
 		asm("$k3 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
-		printf("k3[%lx], pmmStart[%lx]\n", pmm_start, wrapper_ref.pmmStart);
-
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
 
-		asm("%time 2000000");
-		asm("<rest>");
+		long e0, r0;
+		asm("<io devcount>");
+		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+		printf("Devcount: e0[%d], r0[%d]\n", e0, r0);
+		if (0 < r0) {
+			char *buffer = new char[256];
+			asm("0 -> $a1 \n %0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
+			asm("<io read>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After read: e0[%d], r0[%d]\n", e0, r0);
+			printf("Buffer: \"%s\"\n", buffer);
+			delete[] buffer;
+		} else {
+			strprint("No devices to read from.\n");
+		}
 	})((char *) &table_wrapper, (char *) &memory);
 }
 
