@@ -20,6 +20,9 @@ extern "C" void kernel_main() {
 	asm("%%rit table");
 
 	for (size_t offset = 0; offset < 8 * 128; offset += 8) {
+		// Crawl up the stack until we find the magical value of 0xcafef00d that @main in extra.wasm stuffed into $fp.
+		// $rt is pushed right before $fp is pushed, so once we find 0xcafef00d, the next word up contains the original
+		// value of $rt.
 		long value;
 		asm("$fp + %0 -> $k1" :: "r"(offset));
 		asm("[$k1] -> %0" : "=r"(value));
@@ -114,8 +117,9 @@ void __attribute__((naked)) bwrite() {
 }
 
 void __attribute__((naked)) timer() {
-	asm("<p \"TI\">");
-	asm("<halt>");
+	asm("<p \"TI\n\">");
+	asm("%time 2000000");
+	asm("<rest>");
 }
 
 void __attribute__((naked)) pagefault() {
