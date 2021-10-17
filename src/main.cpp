@@ -105,6 +105,21 @@ extern "C" void kernel_main() {
 		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
 		printf("Devcount: e0[%d], r0[%d]\n", e0, r0);
 		if (0 < r0) {
+			asm("0 -> $a1 \n 26 -> $a2");
+			asm("<io seekabs>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+
+			asm("0 -> $a1 \n %0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
+			asm("<io write>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After write: e0[%d], r0[%d]\n", e0, r0);
+
+			asm("0 -> $a1 \n 0 -> $a2");
+			asm("<io seekabs>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+
 			char *buffer = new char[256];
 			asm("0 -> $a1 \n %0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
 			asm("<io read>");
