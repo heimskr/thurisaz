@@ -18,13 +18,13 @@ LLVMLINK	?= llvm-link
 all: $(FINAL)
 
 $(FINAL): $(OUTPUT) $(EXTRA_WHY)
-	wasmc++ -l $@ $^
+	wasmc -l $@ $^
 
 $(EXTRA_WHY): $(EXTRA)
-	wasmc++ $< $@
+	wasmc $< $@
 
 $(OUTPUT): $(WASM)
-	wasmc++ $< $@
+	wasmc $< $@
 
 $(WASM): $(LINKED)
 	ll2w $< -main > $@
