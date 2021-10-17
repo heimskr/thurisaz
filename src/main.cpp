@@ -117,7 +117,7 @@ void __attribute__((naked)) bwrite() {
 }
 
 void __attribute__((naked)) timer() {
-	asm("<p \"TI\n\">");
+	asm("<p \"TI\\n\">");
 	asm("%time 2000000");
 	asm("<rest>");
 }
