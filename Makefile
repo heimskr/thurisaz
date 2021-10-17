@@ -9,7 +9,6 @@ EXTRA_WHY	:= $(EXTRA:.wasm=.why)
 FINAL		:= Thurisaz.why
 LLVMLINK	?= llvm-link
 
-
 .PHONY: linked wasm clean
 
 %.ll: %.cpp

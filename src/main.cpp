@@ -47,18 +47,16 @@ extern "C" void kernel_main() {
 	}
 
 	char * const bitmap_start = (char *) (memsize / 10);
-	const size_t page_count = updiv(memsize, 65536);
-	const size_t table_count = Paging::getTableCount(page_count);
-	const size_t tables_size = table_count * 2048 + 2047;
-	char * const page_tables_start = bitmap_start + page_count / 8;
-	char * const kernel_heap_start = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
+	const size_t page_count   = updiv(memsize, 65536);
+	const size_t table_count  = Paging::getTableCount(page_count);
+	const size_t tables_size  = table_count * 2048 + 2047;
+	char * const page_tables_start  = bitmap_start + page_count / 8;
+	char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
 	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
-	char * const application_start = (char *) (memsize / 2);
+	char * const application_start  = (char *) (memsize / 2);
 
 	Memory memory;
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
-
-	printf("Table count: %lu\n", table_count);
 
 	// + 2047: hack to add enough space for alignment.
 	uint64_t *tables = (uint64_t *) upalign((uintptr_t) page_tables_start, 2048);
@@ -71,8 +69,11 @@ extern "C" void kernel_main() {
 	table_wrapper.bootstrap();
 	table_wrapper.initPMM();
 
+	long mask;
+	asm("$0 - 1 -> %0 \n lui: 0 -> %0" : "=r"(mask));
+
 	for (int i = 0; bitmap[i]; ++i)
-		printf("[%2d] %064b\n", i, bitmap[i]);
+		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
 	strprint("Done.\n");
 
 	int foo = 42;
@@ -102,7 +103,7 @@ extern "C" void kernel_main() {
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
 
 		asm("%time 2000000");
-		for (;;);
+		asm("<rest>");
 	})((char *) &table_wrapper, (char *) &memory);
 }
 
@@ -123,5 +124,6 @@ void __attribute__((naked)) timer() {
 }
 
 void __attribute__((naked)) pagefault() {
-	asm("63 -> $m0; <prc $m0>; 32 -> $m0; <prc $m0>; <prd $e0>; <prc $m0>; <prd $e1>; 10 -> $m0; <prc $m0>; <halt>");
+	asm("63 -> $m0 \n <prc $m0> \n 32 -> $m0 \n <prc $m0> \n <prd $e0> \n <prc $m0> \n <prd $e1> \n 10 -> $m0");
+	asm("<prc $m0> \n <halt>");
 }
