@@ -1,5 +1,5 @@
 EMIT		:= clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -g -nostdlib -fno-builtin -Iinclude -Iinclude/lib -fno-exceptions -fno-rtti
-SOURCES		:= $(shell find src/*.cpp)
+SOURCES		:= $(shell find src/*.cpp src/libc/*.cpp)
 LLVMIR		:= $(SOURCES:.cpp=.ll)
 LINKED		:= main.ll
 WASM		:= main.wasm
@@ -28,7 +28,7 @@ $(OUTPUT): $(WASM)
 $(WASM): $(LINKED)
 	ll2w $< -main > $@
 
-$(LINKED): $(SOURCES:.cpp=.ll)
+$(LINKED): $(LLVMIR)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)
 
 linked: $(LINKED)
