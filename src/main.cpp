@@ -144,6 +144,16 @@ extern "C" void kernel_main() {
 			asm("<io getcursor>");
 			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
 			printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
+
+			buffer = new char[256];
+			asm("0 -> $a1 \n %0 -> $a2" :: "r"(buffer));
+			asm("<io getname>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After getname: e0[%d], r0[%d]\n", e0, r0);
+			if (buffer[255] != '\0')
+				buffer[255] = '\0';
+			printf("Device name: \"%s\"\n", buffer);
+			delete[] buffer;
 		} else {
 			strprint("No devices to read from.\n");
 		}
