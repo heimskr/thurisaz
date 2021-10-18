@@ -1,3 +1,5 @@
+#include <string.h>
+
 #include "mal.h"
 #include "P0Wrapper.h"
 #include "Paging.h"
@@ -104,59 +106,71 @@ extern "C" void kernel_main() {
 		asm("<io devcount>");
 		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
 		printf("Devcount: e0[%d], r0[%d]\n", e0, r0);
-		if (0 < r0) {
-			asm("0 -> $a1 \n 26 -> $a2");
-			asm("<io seekabs>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+		long device_count = r0;
+		if (device_count == 0)
+			strprint("No devices detected.\n");
+		else
+			for (long device_id = 0; device_id < device_count; ++device_id) {
+				strprint("\n\n");
+				char *name = new char[256];
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("%0 -> $a2" :: "r"(name));
+				asm("<io getname>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After getname: e0[%d], r0[%d]\n", e0, r0);
+				if (name[255] != '\0')
+					name[255] = '\0';
+				printf("Device name: \"%s\"\n", name);
 
-			asm("0 -> $a1");
-			asm("<io getsize>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After getsize: e0[%d], r0[%d]\n", e0, r0);
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("26 -> $a2" :: "r"(device_id));
+				asm("<io seekabs>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After seek: e0[%d], r0[%d]\n", e0, r0);
 
-			asm("0 -> $a1 \n %0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
-			asm("<io write>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After write: e0[%d], r0[%d]\n", e0, r0);
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("<io getsize>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After getsize: e0[%d], r0[%d]\n", e0, r0);
 
-			asm("0 -> $a1 \n 0 -> $a2");
-			asm("<io seekabs>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+				if (strcmp(name, "disk.img") == 0) {
+					asm("%0 -> $a1" :: "r"(device_id));
+					asm("%0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
+					asm("<io write>");
+					asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+					printf("After write: e0[%d], r0[%d]\n", e0, r0);
+				}
 
-			char *buffer = new char[256];
-			asm("0 -> $a1 \n %0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
-			asm("<io read>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After read: e0[%d], r0[%d]\n", e0, r0);
-			printf("Buffer: \"%s\"\n", buffer);
-			delete[] buffer;
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("0 -> $a2");
+				asm("<io seekabs>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After seek: e0[%d], r0[%d]\n", e0, r0);
 
-			asm("0 -> $r0");
-			asm("0 -> $a1 \n 34 -> $a2");
-			asm("<io seekrel>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
+				char *buffer = new char[256];
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("%0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
+				asm("<io read>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After read: e0[%d], r0[%d]\n", e0, r0);
+				printf("Buffer: \"%s\"\n", buffer);
 
-			asm("0 -> $r0");
-			asm("0 -> $a1");
-			asm("<io getcursor>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
+				asm("0 -> $r0");
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("34 -> $a2");
+				asm("<io seekrel>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
 
-			buffer = new char[256];
-			asm("0 -> $a1 \n %0 -> $a2" :: "r"(buffer));
-			asm("<io getname>");
-			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-			printf("After getname: e0[%d], r0[%d]\n", e0, r0);
-			if (buffer[255] != '\0')
-				buffer[255] = '\0';
-			printf("Device name: \"%s\"\n", buffer);
-			delete[] buffer;
-		} else {
-			strprint("No devices to read from.\n");
-		}
+				asm("0 -> $r0");
+				asm("%0 -> $a1" :: "r"(device_id));
+				asm("<io getcursor>");
+				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
+
+				delete[] name;
+				delete[] buffer;
+			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
 
