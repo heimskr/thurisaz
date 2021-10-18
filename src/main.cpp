@@ -134,6 +134,12 @@ extern "C" void kernel_main() {
 			delete[] buffer;
 
 			asm("0 -> $r0");
+			asm("0 -> $a1 \n 34 -> $a2");
+			asm("<io seekrel>");
+			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+			printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
+
+			asm("0 -> $r0");
 			asm("0 -> $a1");
 			asm("<io getcursor>");
 			asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
