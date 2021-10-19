@@ -1,7 +1,12 @@
+#meta
+
+name: "Thurisaz Extra"
+
 #data
 
 __errno__: (8)
 __assertion_failed: "Assertion failed!\n"
+__pure_virtual_called: "Pure virtual function called!\n"
 
 #code
 
@@ -19,4 +24,9 @@ __assertion_failed: "Assertion failed!\n"
 	$sp / 2 -> $sp
 	0xcafef00d -> $fp
 	:: kernel_main
+	<halt>
+
+@__cxa_pure_virtual
+	&__pure_virtual_called -> $a0
+	:: strprint
 	<halt>

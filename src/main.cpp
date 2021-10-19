@@ -12,6 +12,20 @@ void pagefault();
 void inexec();
 void bwrite();
 
+struct A {
+	virtual void a() { strprint("A::a()\n"); }
+	virtual void b() = 0;
+};
+
+struct B: public A {
+	virtual void a() override { strprint("B::a()\n"); }
+};
+
+struct C: public B {
+	virtual void b() override { strprint("C::b()\n"); }
+};
+
+
 void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite};
 
 extern "C" void kernel_main() {
@@ -20,6 +34,13 @@ extern "C" void kernel_main() {
 	asm("$rt -> %0" : "=r"(rt));
 	strprint("Hello, world!\n");
 	asm("%%rit table");
+
+	C c;
+	A &a = c;
+	c.a();
+	c.b();
+	a.a();
+	a.b();
 
 	for (size_t offset = 0; offset < 8 * 128; offset += 8) {
 		// Crawl up the stack until we find the magical value of 0xcafef00d that @main in extra.wasm stuffed into $fp.
