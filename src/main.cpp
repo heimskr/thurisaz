@@ -25,7 +25,6 @@ struct C: public B {
 	virtual void b() override { strprint("C::b()\n"); }
 };
 
-
 void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite};
 
 extern "C" void kernel_main() {
@@ -98,8 +97,6 @@ extern "C" void kernel_main() {
 	for (int i = 0; bitmap[i]; ++i)
 		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
 	strprint("Done.\n");
-
-	int foo = 42;
 
 	asm("$sp -> $k1");
 	asm("$fp -> $k2");
