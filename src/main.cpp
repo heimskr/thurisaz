@@ -1,3 +1,4 @@
+#include <map>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -203,6 +204,15 @@ extern "C" void kernel_main() {
 				printf("String count: %lu\n", strings.size());
 				for (const std::string &str: strings)
 					printf("- %s\n", str.c_str());
+
+				prc('\n');
+
+				std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
+				map.try_emplace("what", -10);
+				printf("Map size: %lu\n", map.size());
+				for (const auto &[key, value]: map)
+					printf("%s -> %d\n", key.c_str(), value);
+				asm("<halt>");
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
