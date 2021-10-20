@@ -1,5 +1,6 @@
 #include <string.h>
 #include <string>
+#include <vector>
 
 #include "mal.h"
 #include "P0Wrapper.h"
@@ -191,9 +192,17 @@ extern "C" void kernel_main() {
 				delete[] buffer;
 
 				strprint("\n\nTesting stdlib.\n");
-				std::string str = "Hello, ";
-				str += "World!";
-				printf("\"%s\"\n", str.c_str());
+				std::string hello = "Hello, ";
+				hello += "World!";
+				printf("\"%s\"\n", hello.c_str());
+
+				std::vector<std::string> strings;
+				for (const char *literal: {"Foo", "Bar", "Baz"})
+					strings.emplace_back(literal);
+
+				printf("String count: %lu\n", strings.size());
+				for (const std::string &str: strings)
+					printf("- %s\n", str.c_str());
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
