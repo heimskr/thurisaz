@@ -10,7 +10,7 @@
 #include "printf.h"
 #include "util.h"
 
-namespace Armaz::ThornFAT {
+namespace ThornFAT {
 	Superblock::operator std::string() const {
 		static char magic_hex[16];
 		snprintf(magic_hex, sizeof(magic_hex), "%x", magic);

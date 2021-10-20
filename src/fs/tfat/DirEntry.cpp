@@ -2,7 +2,7 @@
 #include "printf.h"
 #include "util.h"
 
-namespace Armaz::ThornFAT {
+namespace ThornFAT {
 	DirEntry::DirEntry(const Times &times_, size_t length_, FileType type_):
 		times(times_), length(length_), type(type_) {}
 

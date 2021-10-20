@@ -10,7 +10,7 @@
 
 #include "storage/Partition.h"
 
-namespace Armaz::FS {
+namespace FS {
 	constexpr size_t BLOCKSIZE = 512;
 
 	using fd_t = uint64_t;

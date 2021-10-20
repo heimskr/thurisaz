@@ -10,9 +10,9 @@
 
 #include "fs/FS.h"
 
-namespace Armaz::ThornFAT {
+namespace ThornFAT {
 	using block_t = int32_t;
-	using Armaz::FS::fd_t;
+	using FS::fd_t;
 
 	constexpr size_t THORNFAT_PATH_MAX = 255;
 	constexpr size_t FD_MAX = 128; // ???

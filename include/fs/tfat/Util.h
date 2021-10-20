@@ -23,7 +23,7 @@ void dbgn(const char *source, int line, const char *s, const char *s1, int64_t n
 void dbgh(const char *source, int line, const char *s, const char *s1, int64_t n);
 void indent(int offset);
 
-namespace Armaz::ThornFAT::Util {
+namespace ThornFAT::Util {
 	std::optional<std::string> pathFirst(std::string path, std::string *remainder);
 	/**
 	 * Returns the last component of a path.
@@ -353,7 +353,7 @@ static const char BigSegfault[] = BIG_SEGFAULT A_RESET SEGFAULT_EXTRA;
 #define FORGETH      A_RESET  IRS("     forget") A_DIM
 #define GETROOTH     A_RESET  IKS("   get_root") A_DIM
 inline int IS_X(const char *p, const char *x) {
-	auto l = Armaz::ThornFAT::Util::pathLast(p);
+	auto l = ThornFAT::Util::pathLast(p);
 	return l.has_value() && *l == x;
 }
 #define IS_PAUSE(p) (IS_X((p), ".pause") || IS_X((p), ".stop") || IS_X((p), ".sigstop"))

@@ -8,7 +8,7 @@ int debug_disable_method = 0;
 int debug_disable_external = 0;
 char indentation[81];
 
-namespace Armaz::ThornFAT::Util {
+namespace ThornFAT::Util {
 	std::optional<std::string> pathFirst(std::string path, std::string *remainder) {
 		if (path.empty()) {
 			if (remainder)
