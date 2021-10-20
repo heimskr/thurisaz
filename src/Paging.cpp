@@ -33,9 +33,6 @@ namespace Paging {
 	void Tables::bootstrap() {
 		uintptr_t memsize;
 		asm("? mem -> %0" : "=r"(memsize));
-		// For some reason, the binary format is still primarily big endian.
-		codeStart = (void *) swap64((size_t) codeStart);
-		dataStart = (void *) swap64((size_t) dataStart);
 		// Assumes that the kernel isn't larger than 256 pages (16 MiB).
 		tables[0][0] = ADDR2ENTRY04(&tables[1]);
 		tables[1][0] = ADDR2ENTRY04(&tables[2]);
