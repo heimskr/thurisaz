@@ -1,6 +1,7 @@
 EMIT      := clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -g -nostdlib -fno-builtin -Iinclude \
              -Imusl/arch/aarch64 -Imusl/arch/generic -Imusl/obj/src/internal -Imusl/src/include -Imusl/src/internal \
-             -Imusl/obj/include -Imusl/include -Iinclude/lib  -Iinclude/lib/libcxx -fno-exceptions -fno-rtti
+             -Imusl/obj/include -Imusl/include -Iinclude/lib -Iinclude/lib/libcxx \
+			 -fno-exceptions -fno-rtti -Drestrict=__restrict__
 SOURCES   := $(shell find src/*.cpp src/libc/*.cpp src/libcxx/*.cpp src/libcxx/**/*.cpp)
 LLVMIR    := $(SOURCES:.cpp=.ll)
 LINKED    := main.ll

@@ -1,4 +1,5 @@
 #include <string.h>
+#include <string>
 
 #include "mal.h"
 #include "P0Wrapper.h"
@@ -188,6 +189,11 @@ extern "C" void kernel_main() {
 
 				delete[] name;
 				delete[] buffer;
+
+				strprint("\n\nTesting stdlib.\n");
+				std::string str = "Hello, ";
+				str += "World!";
+				printf("\"%s\"\n", str.c_str());
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
