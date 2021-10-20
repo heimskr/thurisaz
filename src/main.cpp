@@ -1,4 +1,5 @@
 #include <map>
+#include <memory>
 #include <string.h>
 #include <string>
 #include <vector>
@@ -26,6 +27,12 @@ struct B: public A {
 
 struct C: public B {
 	virtual void b() override { strprint("C::b()\n"); }
+};
+
+struct NoisyDestructor {
+	std::string name;
+	NoisyDestructor(const std::string &name_): name(name_) {}
+	~NoisyDestructor() { printf("~NoisyDestructor(%s)\n", name.c_str()); }
 };
 
 void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite};
@@ -212,7 +219,11 @@ extern "C" void kernel_main() {
 				printf("Map size: %lu\n", map.size());
 				for (const auto &[key, value]: map)
 					printf("%s -> %d\n", key.c_str(), value);
-				asm("<halt>");
+
+				auto shared = std::make_shared<NoisyDestructor>("shared");
+				{
+					auto unique = std::make_unique<NoisyDestructor>("unique");
+				}
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
