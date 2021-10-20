@@ -4,12 +4,17 @@
 #include <string>
 #include <vector>
 
+#include "Kernel.h"
 #include "mal.h"
 #include "P0Wrapper.h"
 #include "Paging.h"
 #include "Print.h"
 #include "printf.h"
 #include "util.h"
+#include "storage/MBR.h"
+#include "storage/Partition.h"
+#include "storage/WhyDevice.h"
+#include "fs/tfat/ThornFAT.h"
 
 void timer();
 void pagefault();
@@ -139,91 +144,98 @@ extern "C" void kernel_main() {
 		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
 		printf("Devcount: e0[%d], r0[%d]\n", e0, r0);
 		long device_count = r0;
+
+		std::vector<size_t> device_sizes;
+
 		if (device_count == 0)
 			strprint("No devices detected.\n");
 		else
 			for (long device_id = 0; device_id < device_count; ++device_id) {
-				strprint("\n\n");
-				char *name = new char[256];
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("%0 -> $a2" :: "r"(name));
-				asm("<io getname>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After getname: e0[%d], r0[%d]\n", e0, r0);
-				if (name[255] != '\0')
-					name[255] = '\0';
-				printf("Device name: \"%s\"\n", name);
+				// strprint("\n\n");
+				// char *name = new char[256];
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("%0 -> $a2" :: "r"(name));
+				// asm("<io getname>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After getname: e0[%d], r0[%d]\n", e0, r0);
+				// if (name[255] != '\0')
+				// 	name[255] = '\0';
+				// printf("Device name: \"%s\"\n", name);
 
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("26 -> $a2" :: "r"(device_id));
-				asm("<io seekabs>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("26 -> $a2" :: "r"(device_id));
+				// asm("<io seekabs>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After seek: e0[%d], r0[%d]\n", e0, r0);
 
 				asm("%0 -> $a1" :: "r"(device_id));
 				asm("<io getsize>");
 				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
 				printf("After getsize: e0[%d], r0[%d]\n", e0, r0);
+				device_sizes.push_back(r0);
 
-				if (strcmp(name, "disk.img") == 0) {
-					asm("%0 -> $a1" :: "r"(device_id));
-					asm("%0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
-					asm("<io write>");
-					asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-					printf("After write: e0[%d], r0[%d]\n", e0, r0);
-				}
+				// if (strcmp(name, "disk.img") == 0) {
+				// 	asm("%0 -> $a1" :: "r"(device_id));
+				// 	asm("%0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
+				// 	asm("<io write>");
+				// 	asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// 	printf("After write: e0[%d], r0[%d]\n", e0, r0);
+				// }
 
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("0 -> $a2");
-				asm("<io seekabs>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After seek: e0[%d], r0[%d]\n", e0, r0);
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("0 -> $a2");
+				// asm("<io seekabs>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After seek: e0[%d], r0[%d]\n", e0, r0);
 
-				char *buffer = new char[256];
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("%0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
-				asm("<io read>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After read: e0[%d], r0[%d]\n", e0, r0);
-				printf("Buffer: \"%s\"\n", buffer);
+				// char *buffer = new char[256];
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("%0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
+				// asm("<io read>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After read: e0[%d], r0[%d]\n", e0, r0);
+				// printf("Buffer: \"%s\"\n", buffer);
 
-				asm("0 -> $r0");
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("34 -> $a2");
-				asm("<io seekrel>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
+				// asm("0 -> $r0");
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("34 -> $a2");
+				// asm("<io seekrel>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
 
-				asm("0 -> $r0");
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("<io getcursor>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
+				// asm("0 -> $r0");
+				// asm("%0 -> $a1" :: "r"(device_id));
+				// asm("<io getcursor>");
+				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+				// printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
 
-				delete[] name;
-				delete[] buffer;
+				// delete[] name;
+				// delete[] buffer;
 
-				strprint("\n\nTesting stdlib.\n");
-				std::string hello = "Hello, ";
-				hello += "World!";
-				printf("\"%s\"\n", hello.c_str());
+			}
 
-				std::vector<std::string> strings;
-				for (const char *literal: {"Foo", "Bar", "Baz"})
-					strings.emplace_back(literal);
+			strprint("\n\nTesting stdlib.\n");
+			std::string hello = "Hello, ";
+			hello += "World!";
+			printf("\"%s\"\n", hello.c_str());
 
-				printf("String count: %lu\n", strings.size());
-				for (const std::string &str: strings)
-					printf("- %s\n", str.c_str());
+			std::vector<std::string> strings;
+			for (const char *literal: {"Foo", "Bar", "Baz"})
+				strings.emplace_back(literal);
 
-				prc('\n');
+			printf("String count: %lu\n", strings.size());
+			for (const std::string &str: strings)
+				printf("- %s\n", str.c_str());
 
-				std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
-				map.try_emplace("what", -10);
-				printf("Map size: %lu\n", map.size());
-				for (const auto &[key, value]: map)
-					printf("%s -> %d\n", key.c_str(), value);
+			prc('\n');
 
+			std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
+			map.try_emplace("what", -10);
+			printf("Map size: %lu\n", map.size());
+			for (const auto &[key, value]: map)
+				printf("%s -> %d\n", key.c_str(), value);
+
+			{
 				printf("%s:%d\n", __FILE__, __LINE__);
 				auto shared = std::make_shared<NoisyDestructor>("shared");
 				printf("%s:%d\n", __FILE__, __LINE__);
@@ -235,6 +247,18 @@ extern "C" void kernel_main() {
 					printf("%s:%d use count: %lu\n", __FILE__, __LINE__, shared.use_count());
 				}
 				printf("%s:%d\n", __FILE__, __LINE__);
+			}
+
+			if (0 < device_count) {
+				WhyDevice device(0);
+				MBR mbr;
+				mbr.firstEntry = {0, 0xfa, 1, uint32_t(device_sizes.at(0) / 512 - 1)};
+				ssize_t result = device.write(&mbr, sizeof(MBR), 0);
+				if (result < 0)
+					Kernel::panicf("device.write failed: %ld\n", result);
+				Partition partition(device, mbr.firstEntry);
+				ThornFAT::ThornFATDriver driver(&partition);
+				strprint("ThornFAT driver instantiated.\n");
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
