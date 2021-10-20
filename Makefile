@@ -2,7 +2,7 @@ EMIT      := clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -g -nos
              -Imusl/arch/aarch64 -Imusl/arch/generic -Imusl/obj/src/internal -Imusl/src/include -Imusl/src/internal \
              -Imusl/obj/include -Imusl/include -Iinclude/lib -Iinclude/lib/libcxx \
 			 -fno-exceptions -fno-rtti -Drestrict=__restrict__
-SOURCES   := $(shell find src/*.cpp src/libc/*.cpp src/libcxx/*.cpp src/libcxx/**/*.cpp)
+SOURCES   := $(shell find src -name '*.cpp')
 LLVMIR    := $(SOURCES:.cpp=.ll)
 LINKED    := main.ll
 WASM      := main.wasm
@@ -14,10 +14,10 @@ LLVMLINK  ?= llvm-link
 
 .PHONY: linked wasm clean
 
+all: $(FINAL)
+
 %.ll: %.cpp
 	$(EMIT) -Iinclude $< -o $@
-
-all: $(FINAL)
 
 $(FINAL): $(OUTPUT) $(EXTRA_WHY)
 	wasmc -l $@ $^

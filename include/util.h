@@ -1,5 +1,7 @@
 #pragma once
 
+#include <cstdint>
+
 template <typename T>
 inline T upalign(T num, long alignment) {
 	return num + ((alignment - (num % alignment)) % alignment);

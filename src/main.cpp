@@ -17,6 +17,10 @@ void inexec();
 void bwrite();
 
 struct A {
+	A() {
+		// Uncomment for a surprise :)
+		// b();
+	}
 	virtual void a() { strprint("A::a()\n"); }
 	virtual void b() = 0;
 };
