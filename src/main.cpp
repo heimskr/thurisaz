@@ -220,10 +220,17 @@ extern "C" void kernel_main() {
 				for (const auto &[key, value]: map)
 					printf("%s -> %d\n", key.c_str(), value);
 
+				printf("%s:%d\n", __FILE__, __LINE__);
 				auto shared = std::make_shared<NoisyDestructor>("shared");
+				printf("%s:%d\n", __FILE__, __LINE__);
 				{
+					printf("%s:%d\n", __FILE__, __LINE__);
 					auto unique = std::make_unique<NoisyDestructor>("unique");
+					printf("%s:%d use count: %lu\n", __FILE__, __LINE__, shared.use_count());
+					auto shared_copy = shared;
+					printf("%s:%d use count: %lu\n", __FILE__, __LINE__, shared.use_count());
 				}
+				printf("%s:%d\n", __FILE__, __LINE__);
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
