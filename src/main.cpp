@@ -20,23 +20,7 @@ void timer();
 void pagefault();
 void inexec();
 void bwrite();
-
-struct A {
-	A() {
-		// Uncomment for a surprise :)
-		// b();
-	}
-	virtual void a() { strprint("A::a()\n"); }
-	virtual void b() = 0;
-};
-
-struct B: public A {
-	virtual void a() override { strprint("B::a()\n"); }
-};
-
-struct C: public B {
-	virtual void b() override { strprint("C::b()\n"); }
-};
+void keybrd();
 
 struct NoisyDestructor {
 	std::string name;
@@ -44,7 +28,10 @@ struct NoisyDestructor {
 	~NoisyDestructor() { printf("~NoisyDestructor(%s)\n", name.c_str()); }
 };
 
-void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite};
+long keybrd_index = 0;
+unsigned long keybrd_queue[16] = {0};
+
+void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite, keybrd};
 
 extern "C" void kernel_main() {
 	long rt;
@@ -52,13 +39,7 @@ extern "C" void kernel_main() {
 	asm("$rt -> %0" : "=r"(rt));
 	strprint("Hello, world!\n");
 	asm("%%rit table");
-
-	C c;
-	A &a = c;
-	c.a();
-	c.b();
-	a.a();
-	a.b();
+	--keybrd_index;
 
 	for (size_t offset = 0; offset < 8 * 128; offset += 8) {
 		// Crawl up the stack until we find the magical value of 0xcafef00d that @main in extra.wasm stuffed into $fp.
@@ -260,6 +241,13 @@ extern "C" void kernel_main() {
 				ThornFAT::ThornFATDriver driver(&partition);
 				strprint("ThornFAT driver instantiated.\n");
 				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
+				for (;;) {
+					asm("<rest>");
+					if (-1 < keybrd_index)
+						printf("Key: %lx\n", keybrd_queue[keybrd_index--]);
+					else
+						asm("<p \"oh\\n\">");
+				}
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }
@@ -283,4 +271,15 @@ void __attribute__((naked)) timer() {
 void __attribute__((naked)) pagefault() {
 	asm("63 -> $m0 \n <prc $m0> \n 32 -> $m0 \n <prc $m0> \n <prd $e0> \n <prc $m0> \n <prd $e1> \n 10 -> $m0");
 	asm("<prc $m0> \n <halt>");
+}
+
+void keybrd() {
+	asm("<prd %0>" :: "r"(keybrd_index));
+	if (keybrd_index < 15) {
+		asm("<p \":)\\n\">");
+		asm("$e2 -> %0" : "=r"(keybrd_queue[++keybrd_index]));
+	} else {
+		asm("<p \":(\\n\">");
+	}
+	asm(": $e0");
 }
