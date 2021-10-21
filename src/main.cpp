@@ -257,12 +257,9 @@ extern "C" void kernel_main() {
 				if (result < 0)
 					Kernel::panicf("device.write failed: %ld\n", result);
 				Partition partition(device, mbr.firstEntry);
-				char first24[24] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
-				partition.read(&first24, 24, 0);
-				for (int i = 0; i < 24; ++i) printf("%d ", first24[i]); prc('\n');
-
 				ThornFAT::ThornFATDriver driver(&partition);
 				strprint("ThornFAT driver instantiated.\n");
+				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }

@@ -414,14 +414,6 @@ inline int IS_X(const char *p, const char *x) {
 #define READDIR_MAX_INCLUDE 4
 #define DEFAULT_BLOCKSIZE 8192
 
-//////// These are options for fdstress.
-// #define FDC_DEBUG_ON    // If undefined, the driver's logging will be externally disabled while fdstress is running.
-// #define FDC_PAUSEAT 900 // If this is defined, fdstress will SIGSTOP itself once it reaches this number.
-// #define FDC_SHOW_ALL    // Whether to print everything to the console instead of overwriting the same line.
-
-//////// When specified, a constant value will be used instead of the current time.
-// #define CONSTANT_TIME 837726600
-
 //////// These options are ones that I almost never have on.
 //////// They exist strictly for the convenience of anyone who uses this program.
 // #define NOANSI           // This one doesn't even work anymore.
