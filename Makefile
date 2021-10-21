@@ -39,7 +39,7 @@ linked: $(LINKED)
 wasm: $(WASM)
 
 clean:
-	rm -f $(LINKED) $(WASM) src/*.ll src/**/*.ll
+	rm -f $(LINKED) $(WASM) $(shell find src -name '*.ll')
 
 DEPFILE  = .dep
 DEPTOKEN = "\# MAKEDEPENDS"

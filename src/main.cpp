@@ -121,19 +121,20 @@ extern "C" void kernel_main() {
 	asm("$fp -> $k2");
 	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
 	if (rt_addr) {
-		*rt_addr += table_wrapper.pmmStart;
+		// *rt_addr += table_wrapper.pmmStart;
 	} else {
 		strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
 		asm("<halt>");
 	}
 
-	asm("%%page on");
-	asm("$k1 + $k3 -> $sp");
-	asm("$k2 + $k3 -> $fp");
+	// asm("%%page on");
+	// asm("$k1 + $k3 -> $sp");
+	// asm("$k2 + $k3 -> $fp");
 
 	([](char *tptr, char *mptr) {
 		long pmm_start;
-		asm("$k3 -> %0" : "=r"(pmm_start));
+		// asm("$k3 -> %0" : "=r"(pmm_start));
+		asm("$0 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
@@ -257,6 +258,10 @@ extern "C" void kernel_main() {
 				if (result < 0)
 					Kernel::panicf("device.write failed: %ld\n", result);
 				Partition partition(device, mbr.firstEntry);
+				char first24[24] = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24};
+				partition.read(&first24, 24, 0);
+				for (int i = 0; i < 24; ++i) printf("%d ", first24[i]); prc('\n');
+
 				ThornFAT::ThornFATDriver driver(&partition);
 				strprint("ThornFAT driver instantiated.\n");
 			}
