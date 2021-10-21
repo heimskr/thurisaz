@@ -121,20 +121,19 @@ extern "C" void kernel_main() {
 	asm("$fp -> $k2");
 	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
 	if (rt_addr) {
-		// *rt_addr += table_wrapper.pmmStart;
+		*rt_addr += table_wrapper.pmmStart;
 	} else {
 		strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
 		asm("<halt>");
 	}
 
-	// asm("%%page on");
-	// asm("$k1 + $k3 -> $sp");
-	// asm("$k2 + $k3 -> $fp");
+	asm("%%page on");
+	asm("$k1 + $k3 -> $sp");
+	asm("$k2 + $k3 -> $fp");
 
 	([](char *tptr, char *mptr) {
 		long pmm_start;
-		// asm("$k3 -> %0" : "=r"(pmm_start));
-		asm("$0 -> %0" : "=r"(pmm_start));
+		asm("$k3 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
