@@ -273,13 +273,21 @@ void __attribute__((naked)) pagefault() {
 	asm("<prc $m0> \n <halt>");
 }
 
-void keybrd() {
-	asm("<prd %0>" :: "r"(keybrd_index));
-	if (keybrd_index < 15) {
-		asm("<p \":)\\n\">");
-		asm("$e2 -> %0" : "=r"(keybrd_queue[++keybrd_index]));
-	} else {
-		asm("<p \":(\\n\">");
-	}
-	asm(": $e0");
+void __attribute__((naked)) keybrd() {
+	asm("%di                   \n\
+	     [keybrd_index] -> $e3 \n\
+	     $e3 > 14 -> $e4       \n\
+	     : $e0 if $e4          \n\
+	     <prd $e3>             \n\
+	     10 -> $e5             \n\
+	     <prc $e5>             \n\
+	     keybrd_queue -> $e4   \n\
+	     $e3 * 8               \n\
+	     $e4 + $lo -> $e3      \n\
+	     $e2 -> [$e3]          \n\
+	     <prd $e0>             \n\
+	     10 -> $k3             \n\
+	     <prc $k3>             \n\
+	     %ei                   \n\
+	     : $e0                 ");
 }
