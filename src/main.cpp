@@ -122,6 +122,7 @@ extern "C" void kernel_main() {
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
 
+		/*
 		long e0, r0;
 		asm("<io devcount>");
 		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
@@ -243,13 +244,31 @@ extern "C" void kernel_main() {
 				ThornFAT::ThornFATDriver driver(&partition);
 				strprint("ThornFAT driver instantiated.\n");
 				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
-				for (;;) {
-					asm("<rest>");
-					if (-1 < keybrd_index)
-						printf("Key: %lx\n", keybrd_queue[keybrd_index--]);
-					else
-						asm("<p \"oh\\n\">");
-				}
+			}
+			//*/
+
+			std::string line;
+
+			for (;;) {
+				asm("<rest>");
+				if (-1 < keybrd_index) {
+					long key = keybrd_queue[keybrd_index--];
+					if (key == 0x7f) {
+						if (!line.empty()) {
+							strprint("\e[D \e[D");
+							line.pop_back();
+						}
+					} else if (key == 0x0a) {
+						asm("<p \"\\nLine: \\\"\">");
+						strprint(line.c_str());
+						asm("<p \"\\\"\\n\">");
+						line.clear();
+					} else {
+						line.push_back(key & 0xff);
+						prc(key & 0xff);
+					}
+				} else
+					asm("<p \":(\\n\">");
 			}
 	})((char *) &table_wrapper, (char *) &memory);
 }

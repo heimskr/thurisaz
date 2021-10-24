@@ -6,4 +6,5 @@
 *.why
 !extra.wasm
 .DS_Store
+*.png
 
