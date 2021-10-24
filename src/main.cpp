@@ -16,11 +16,13 @@
 #include "storage/WhyDevice.h"
 #include "fs/tfat/ThornFAT.h"
 
-void timer();
-void pagefault();
-void inexec();
-void bwrite();
-void keybrd();
+extern "C" {
+	void timer();
+	void pagefault();
+	void inexec();
+	void bwrite();
+	void keybrd();
+}
 
 struct NoisyDestructor {
 	std::string name;
@@ -252,42 +254,43 @@ extern "C" void kernel_main() {
 	})((char *) &table_wrapper, (char *) &memory);
 }
 
-void __attribute__((naked)) inexec() {
-	asm("<p \"IE\\n\">");
-	asm("<halt>");
-}
+extern "C" {
+	void __attribute__((naked)) inexec() {
+		asm("<p \"IE\\n\">");
+		asm("<halt>");
+	}
 
-void __attribute__((naked)) bwrite() {
-	asm("<p \"BW\\n\">");
-	asm("<halt>");
-}
+	void __attribute__((naked)) bwrite() {
+		asm("<p \"BW\\n\">");
+		asm("<halt>");
+	}
 
-void __attribute__((naked)) timer() {
-	asm("<p \"TI\\n\">");
-	asm("%time 2000000");
-	asm("<rest>");
-}
+	void __attribute__((naked)) timer() {
+		asm("<p \"TI\\n\">");
+		asm("%time 2000000");
+		asm("<rest>");
+	}
 
-void __attribute__((naked)) pagefault() {
-	asm("63 -> $m0 \n <prc $m0> \n 32 -> $m0 \n <prc $m0> \n <prd $e0> \n <prc $m0> \n <prd $e1> \n 10 -> $m0");
-	asm("<prc $m0> \n <halt>");
-}
+	void __attribute__((naked)) pagefault() {
+		asm("63 -> $m0 \n <prc $m0> \n 32 -> $m0 \n <prc $m0> \n <prd $e0> \n <prc $m0> \n <prd $e1> \n 10 -> $m0");
+		asm("<prc $m0> \n <halt>");
+	}
 
-void __attribute__((naked)) keybrd() {
-	asm("%di                   \n\
-	     [keybrd_index] -> $e3 \n\
-	     $e3 > 14 -> $e4       \n\
-	     : $e0 if $e4          \n\
-	     <prd $e3>             \n\
-	     10 -> $e5             \n\
-	     <prc $e5>             \n\
-	     keybrd_queue -> $e4   \n\
-	     $e3 * 8               \n\
-	     $e4 + $lo -> $e3      \n\
-	     $e2 -> [$e3]          \n\
-	     <prd $e0>             \n\
-	     10 -> $k3             \n\
-	     <prc $k3>             \n\
-	     %ei                   \n\
-	     : $e0                 ");
+	void __attribute__((naked)) keybrd() {
+		asm("%di                   \n\
+			[keybrd_index] -> $e3 \n\
+			$e3 < 15 -> $e4       \n\
+			: keybrd_cont if $e4  \n\
+			%ei                   \n\
+			: $e0                 \n\
+			@keybrd_cont          \n\
+			keybrd_queue -> $e4   \n\
+			$e3 + 1 -> $e3        \n\
+			$e3 -> [keybrd_index] \n\
+			$e3 * 8               \n\
+			$e4 + $lo -> $e3      \n\
+			$e2 -> [$e3]          \n\
+			%ei                   \n\
+			: $e0                 ");
+	}
 }
