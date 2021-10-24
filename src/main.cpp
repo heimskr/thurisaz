@@ -252,17 +252,36 @@ extern "C" void kernel_main() {
 			for (;;) {
 				asm("<rest>");
 				if (-1 < keybrd_index) {
-					long key = keybrd_queue[keybrd_index--];
-					if (key == 0x7f) {
+					const long combined = keybrd_queue[keybrd_index--];
+					const char key = combined & 0xff;
+					long mask = 1l;
+					mask <<= 32;
+					const bool shift = (combined & mask) != 0;
+					const bool alt   = (combined & (mask <<= 1)) != 0;
+					const bool ctrl  = (combined & (mask <<= 1)) != 0;
+
+					if (key == 'u' && ctrl) {
+						line.clear();
+						strprint("\e[2K\e[G");
+					} else if (key == 0x7f) {
 						if (!line.empty()) {
 							strprint("\e[D \e[D");
 							line.pop_back();
 						}
 					} else if (key == 0x0a) {
-						asm("<p \"\\nLine: \\\"\">");
-						strprint(line.c_str());
-						asm("<p \"\\\"\\n\">");
-						line.clear();
+						if (!line.empty()) {
+							asm("<p \"\\nLine: \\\"\">");
+							strprint(line.c_str());
+							asm("<p \"\\\"\\n\">");
+							char *who = nullptr;
+							unsigned long what = strtoul(line.c_str(), &who, 10);
+							printf("[0x%lx], [%lu]\n", who, what);
+							prx((long) who);
+							prc('\n');
+							line.clear();
+						}
+					} else if (0x7f < key) {
+						prx(key);
 					} else {
 						line.push_back(key & 0xff);
 						prc(key & 0xff);
