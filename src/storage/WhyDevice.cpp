@@ -42,3 +42,10 @@ ssize_t WhyDevice::write(const void *buffer, size_t bytes, size_t byte_offset) {
 
 	return e0 != 0? -e0 : r0;
 }
+
+size_t WhyDevice::count() {
+	long r0;
+	asm("<io devcount>");
+	asm("$r0 -> %0" : "=r"(r0));
+	return r0;
+}

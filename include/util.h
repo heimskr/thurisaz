@@ -31,3 +31,6 @@ T swap64(T n) {
 }
 
 std::vector<std::string> split(const std::string &str, const std::string &delimiter, bool condense = true);
+
+bool parseUlong(const std::string &str, uint64_t &out, int base = 10);
+bool parseLong(const std::string &str, int64_t &out, int base = 10);

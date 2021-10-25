@@ -160,6 +160,48 @@ index 88eb55b1..9d03ca25 100644
  
  #undef WEOF
  #define WEOF 0xffffffffU
+diff --git a/src/ctype/isalpha.c b/src/ctype/isalpha.c
+index a87a9375..b3598f53 100644
+--- a/src/ctype/isalpha.c
++++ b/src/ctype/isalpha.c
+@@ -1,14 +1,6 @@
+ #include <ctype.h>
+ #undef isalpha
+ 
+-int isalpha(int c)
+-{
+-	return ((unsigned)c|32)-'a' < 26;
++int isalpha(int c) {
++	return ((unsigned) c | 32) - 'a' < 26;
+ }
+-
+-int __isalpha_l(int c, locale_t l)
+-{
+-	return isalpha(c);
+-}
+-
+-weak_alias(__isalpha_l, isalpha_l);
+diff --git a/src/ctype/isdigit.c b/src/ctype/isdigit.c
+index 16beddb4..a682ec66 100644
+--- a/src/ctype/isdigit.c
++++ b/src/ctype/isdigit.c
+@@ -1,14 +1,6 @@
+ #include <ctype.h>
+ #undef isdigit
+ 
+-int isdigit(int c)
+-{
+-	return (unsigned)c-'0' < 10;
++int isdigit(int c) {
++	return (unsigned) c - '0' < 10;
+ }
+-
+-int __isdigit_l(int c, locale_t l)
+-{
+-	return isdigit(c);
+-}
+-
+-weak_alias(__isdigit_l, isdigit_l);
 diff --git a/src/ctype/isspace.c b/src/ctype/isspace.c
 index 428813e7..6bbbd337 100644
 --- a/src/ctype/isspace.c

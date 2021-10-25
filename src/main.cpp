@@ -25,9 +25,9 @@ extern "C" {
 }
 
 struct NoisyDestructor {
-	std::string name;
-	NoisyDestructor(const std::string &name_): name(name_) {}
-	~NoisyDestructor() { printf("~NoisyDestructor(%s)\n", name.c_str()); }
+	const char *string;
+	NoisyDestructor(const char *string_): string(string_) {}
+	~NoisyDestructor() { strprint(string); }
 };
 
 long keybrd_index = 0;
@@ -212,41 +212,6 @@ extern "C" void kernel_main() {
 
 			}
 
-			strprint("\n\nTesting stdlib.\n");
-			std::string hello = "Hello, ";
-			hello += "World!";
-			printf("\"%s\"\n", hello.c_str());
-
-			std::vector<std::string> strings;
-			for (const char *literal: {"Foo", "Bar", "Baz"})
-				strings.emplace_back(literal);
-
-			printf("String count: %lu\n", strings.size());
-			for (const std::string &str: strings)
-				printf("- %s\n", str.c_str());
-
-			prc('\n');
-
-			std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
-			map.try_emplace("what", -10);
-			printf("Map size: %lu\n", map.size());
-			for (const auto &[key, value]: map)
-				printf("%s -> %d\n", key.c_str(), value);
-
-			{
-				printf("%s:%d\n", __FILE__, __LINE__);
-				auto shared = std::make_shared<NoisyDestructor>("shared");
-				printf("%s:%d\n", __FILE__, __LINE__);
-				{
-					printf("%s:%d\n", __FILE__, __LINE__);
-					auto unique = std::make_unique<NoisyDestructor>("unique");
-					printf("%s:%d use count: %lu\n", __FILE__, __LINE__, shared.use_count());
-					auto shared_copy = shared;
-					printf("%s:%d use count: %lu\n", __FILE__, __LINE__, shared.use_count());
-				}
-				printf("%s:%d\n", __FILE__, __LINE__);
-			}
-
 			if (0 < device_count) {
 				WhyDevice device(0);
 				MBR mbr;
@@ -264,6 +229,11 @@ extern "C" void kernel_main() {
 		// for (;;) asm("<rest>");
 
 		std::string line;
+		long selected_drive = -1;
+		long drive_count = 0;
+		asm("<io devcount> \n $r0 -> %0" : "=r"(drive_count));
+
+		strprint("\e[32m$\e[39;1m ");
 
 		for (;;) {
 			asm("<rest>");
@@ -278,7 +248,7 @@ extern "C" void kernel_main() {
 
 				if (key == 'u' && ctrl) {
 					line.clear();
-					strprint("\e[2K\e[G");
+					strprint("\e[2K\e[G\e[32m$\e[39;1m ");
 				} else if (key == 0x7f) {
 					if (!line.empty()) {
 						strprint("\e[D \e[D");
@@ -286,22 +256,52 @@ extern "C" void kernel_main() {
 					}
 				} else if (key == 0x0a) {
 					if (!line.empty()) {
-						asm("<p \"\\nLine: \\\"\">");
-						strprint(line.c_str());
-						asm("<p \"\\\"\\n\">");
+						strprint("\e[0m\n");
 						const std::vector<std::string> pieces = split(line, " ", true);
-						size_t i = 0;
-						for (const auto &piece: pieces) {
-							prd(i++);
-							prc(':');
-							prc(' ');
-							prc('"');
-							strprint(piece.c_str());
-							prc('"');
-							prc('\n');
-						}
-
+						const std::string &cmd = pieces[0];
+						const size_t size = pieces.size();
 						line.clear();
+						NoisyDestructor prompt("\e[32m$\e[39;1m ");
+						if (cmd == "drives") {
+							printf("Number of drives: %lu\n", WhyDevice::count());
+						} else if (cmd == "drive") {
+							if (selected_drive == -1)
+								strprint("No drive selected.\n");
+							else
+								printf("Selected drive: %ld\n", selected_drive);
+						} else if (cmd == "select") {
+							if (size != 2) {
+								strprint("Usage: select <drive>\n");
+								continue;
+							} else if (!parseLong(pieces[1], selected_drive) || selected_drive < 0 ||
+							           drive_count <= selected_drive) {
+								strprint("Invalid drive ID.\n");
+								selected_drive = -1;
+							} else {
+								printf("Selected drive %ld.\n", selected_drive);
+							}
+						} else if (cmd == "getsize") {
+							if (size != 1 && size != 2) {
+								strprint("Usage: getsize [drive]\n");
+								continue;
+							}
+							long drive = selected_drive;
+							if (size == 2 && (!parseLong(pieces[1], drive) || drive < 0 || drive_count <= drive)) {
+								strprint("Invalid drive ID.\n");
+								continue;
+							}
+							long e0, r0;
+							asm("%2 -> $a1    \n\
+							     <io getsize> \n\
+							     $e0 -> %0    \n\
+							     $r0 -> %1    " : "=r"(e0), "=r"(r0) : "r"(drive));
+							if (e0 != 0)
+								printf("getsize failed: %ld\n", e0);
+							else
+								printf("Size of drive %ld: %lu byte%s\n", drive, r0, r0 == 1? "" : "s");
+						} else {
+							strprint("Unknown command.\n");
+						}
 					}
 				} else if (0x7f < key) {
 					prx(key);
