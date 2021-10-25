@@ -289,6 +289,18 @@ extern "C" void kernel_main() {
 						asm("<p \"\\nLine: \\\"\">");
 						strprint(line.c_str());
 						asm("<p \"\\\"\\n\">");
+						const std::vector<std::string> pieces = split(line, " ", true);
+						size_t i = 0;
+						for (const auto &piece: pieces) {
+							prd(i++);
+							prc(':');
+							prc(' ');
+							prc('"');
+							strprint(piece.c_str());
+							prc('"');
+							prc('\n');
+						}
+
 						line.clear();
 					}
 				} else if (0x7f < key) {
@@ -297,8 +309,7 @@ extern "C" void kernel_main() {
 					line.push_back(key & 0xff);
 					prc(key & 0xff);
 				}
-			} else
-				asm("<p \":(\\n\">");
+			}
 		}
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }

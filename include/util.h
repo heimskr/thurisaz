@@ -1,6 +1,8 @@
 #pragma once
 
 #include <cstdint>
+#include <string>
+#include <vector>
 
 template <typename T>
 inline T upalign(T num, long alignment) {
@@ -27,3 +29,5 @@ T swap64(T n) {
 		((casted >> 56) & 0xff)
 	);
 }
+
+std::vector<std::string> split(const std::string &str, const std::string &delimiter, bool condense = true);
