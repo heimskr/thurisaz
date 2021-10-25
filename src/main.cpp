@@ -235,6 +235,11 @@ extern "C" void kernel_main() {
 
 		strprint("\e[32m$\e[39;1m ");
 
+		std::unique_ptr<WhyDevice> device;
+		std::unique_ptr<MBR> mbr;
+		std::unique_ptr<Partition> partition;
+		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
+
 		for (;;) {
 			asm("<rest>");
 			if (-1 < keybrd_index) {
@@ -299,6 +304,32 @@ extern "C" void kernel_main() {
 								printf("getsize failed: %ld\n", e0);
 							else
 								printf("Size of drive %ld: %lu byte%s\n", drive, r0, r0 == 1? "" : "s");
+						} else if (cmd == "readmbr") {
+							if (size != 1 && size != 2) {
+								strprint("Usage: readmbr [drive]\n");
+								continue;
+							}
+							long drive = selected_drive;
+							if (size == 2 && (!parseLong(pieces[1], drive) || drive < 0 || drive_count <= drive)) {
+								strprint("Invalid drive ID.\n");
+								continue;
+							}
+							device = std::make_unique<WhyDevice>(drive);
+							if (!mbr)
+								mbr = std::make_unique<MBR>();
+							ssize_t status = device->read(mbr.get(), sizeof(MBR), 0);
+							if (status < 0) {
+								printf("Couldn't read disk: %ld\n", status);
+								continue;
+							}
+							printf("Disk ID: 0x%02x%02x%02x%02x\n",
+								mbr->diskID[3], mbr->diskID[2], mbr->diskID[1], mbr->diskID[0]);
+							for (int i = 0; i < 4; ++i) {
+								const MBREntry &entry = (&mbr->firstEntry)[i];
+								printf("%d: attributes(0x%02x), type(0x%02x), startLBA(%u), sectors(%u)\n",
+									i, entry.attributes, entry.type, entry.startLBA, entry.sectors);
+							}
+							printf("Signature: 0x%02x%02x\n", mbr->signature[1], mbr->signature[0]);
 						} else {
 							strprint("Unknown command.\n");
 						}

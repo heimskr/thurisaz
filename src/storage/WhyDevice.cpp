@@ -1,6 +1,6 @@
 #include "storage/WhyDevice.h"
 
-WhyDevice::WhyDevice(int index_): index(index_) {}
+WhyDevice::WhyDevice(long index_): index(index_) {}
 
 ssize_t WhyDevice::read(void *buffer, size_t bytes, size_t byte_offset) {
 	// We're going to be messing with the argument registers, so we have to save the arguments into something else in
