@@ -10,6 +10,8 @@
 #ifndef _LIBCPP_STRING
 #define _LIBCPP_STRING
 
+#include "printf.h"
+
 /*
     string synopsis
 

@@ -21,9 +21,9 @@ class Memory {
 		BlockMeta *base = nullptr;
 		uintptr_t highestAllocated = 0;
 
-		static uintptr_t realign(uintptr_t);
+		static uintptr_t realign(uintptr_t, size_t alignment = MEMORY_ALIGN);
 		BlockMeta * findFreeBlock(BlockMeta * &last, size_t);
-		BlockMeta * requestSpace(BlockMeta *last, size_t);
+		BlockMeta * requestSpace(BlockMeta *last, size_t size, size_t alignment = MEMORY_ALIGN);
 		void split(BlockMeta &, size_t);
 		int merge();
 

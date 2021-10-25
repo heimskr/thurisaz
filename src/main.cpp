@@ -35,6 +35,37 @@ unsigned long keybrd_queue[16] = {0};
 
 void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite, keybrd};
 
+extern "C" void stacktrace() {
+	long m5 = 0, rt = 0;
+	asm("$m5 -> %0" : "=r"(m5));
+	size_t i = 0;
+	printf("stacktrace (%ld):\n", m5);
+	while (m5 != 0) {
+		asm("<p \"m5 = \"> \n <prd %0> \n <prc %1>" :: "r"(m5), "r"('\n'));
+		// printf("m5 = %ld\n", m5);
+		asm("[%1] -> %0" : "=r"(rt) : "r"(m5 + 16));
+		printf("%2d: %ld\n", i++, rt);
+		m5 = *(long *) m5;
+	}
+}
+
+extern "C" void foo5() {
+	stacktrace();
+}
+
+extern "C" void foo4() { foo5(); }
+extern "C" void foo3() { foo4(); }
+extern "C" void foo2() { foo3(); }
+extern "C" void foo1() { foo2(); }
+extern "C" void foo0() { foo1(); }
+
+extern "C" void process(const std::string &str) {
+	prc('<');
+	strprint(str.c_str());
+	prc('>');
+	prc('\n');
+}
+
 extern "C" void kernel_main() {
 	long rt;
 	long *rt_addr = nullptr;
@@ -100,6 +131,10 @@ extern "C" void kernel_main() {
 		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
 	strprint("Done.\n");
 
+	foo0();
+
+	return;
+
 	asm("$sp -> $k1");
 	asm("$fp -> $k2");
 	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
@@ -109,6 +144,9 @@ extern "C" void kernel_main() {
 		strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
 		asm("<halt>");
 	}
+
+
+	/*
 
 	asm("%%page on");
 	asm("$k1 + $k3 -> $sp");
@@ -245,7 +283,9 @@ extern "C" void kernel_main() {
 				strprint("ThornFAT driver instantiated.\n");
 				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
 			}
-			//*/
+			//* /
+
+			// for (;;) asm("<rest>");
 
 			std::string line;
 
@@ -273,12 +313,16 @@ extern "C" void kernel_main() {
 							asm("<p \"\\nLine: \\\"\">");
 							strprint(line.c_str());
 							asm("<p \"\\\"\\n\">");
-							char *who = nullptr;
-							unsigned long what = strtoul(line.c_str(), &who, 10);
-							printf("[0x%lx], [%lu]\n", who, what);
-							prx((long) who);
-							prc('\n');
+
+							// decltype(&process) process_ = (decltype(&process)) ((char *) &process + pmm_start);
+							decltype(&process) process_ = (decltype(&process)) ((char *) &process + 0);
+							const std::string process_addr = std::to_string((unsigned long) process_);
+							asm("<prc %0>" :: "r"('!'));
+							// process_(process_addr);
+							asm("<prx %0>" :: "r"(line.c_str()));
+							asm("<prc %0>" :: "r"('!'));
 							line.clear();
+							asm("<prc %0>" :: "r"('!'));
 						}
 					} else if (0x7f < key) {
 						prx(key);
@@ -289,7 +333,7 @@ extern "C" void kernel_main() {
 				} else
 					asm("<p \":(\\n\">");
 			}
-	})((char *) &table_wrapper, (char *) &memory);
+	})((char *) &table_wrapper, (char *) &memory); //*/
 }
 
 extern "C" {

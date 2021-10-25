@@ -1,4 +1,4 @@
-EMIT      := clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -g -nostdlib -fno-builtin -Iinclude \
+EMIT      := clang++ -S -emit-llvm -target mips64el-linux-gnu -std=c++20 -O0 -g -nostdlib -fno-builtin -Iinclude \
              -Imusl/arch/aarch64 -Imusl/arch/generic -Imusl/obj/src/internal -Imusl/src/include -Imusl/src/internal \
              -Imusl/obj/include -Imusl/include -Iinclude/lib -Iinclude/lib/libcxx \
 			 -fno-exceptions -fno-rtti -Drestrict=__restrict__
