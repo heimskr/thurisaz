@@ -10,6 +10,7 @@
 #ifndef _LIBCPP_STRING
 #define _LIBCPP_STRING
 
+#include "Print.h"
 #include "printf.h"
 
 /*
@@ -1442,8 +1443,12 @@ public:
     _LIBCPP_INLINE_VISIBILITY void __shrink_or_extend(size_type __target_capacity);
 
     _LIBCPP_INLINE_VISIBILITY
-    bool __is_long() const _NOEXCEPT
-        {return bool(__r_.first().__s.__size_ & __short_mask);}
+    bool __is_long() const _NOEXCEPT {
+        // const bool out = bool(__r_.first().__s.__size_ & __short_mask);
+        // strprint(out? "\e[32mL\e[39m" : "\e[31mS\e[39m");
+        // return out;
+        return bool(__r_.first().__s.__size_ & __short_mask);
+    }
 
 #if _LIBCPP_DEBUG_LEVEL == 2
 

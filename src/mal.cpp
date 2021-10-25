@@ -110,7 +110,7 @@ void Memory::split(BlockMeta &block, size_t size) {
 		// After we realign, we need to make sure that the new block's new size isn't negative.
 
 		if (block.next) {
-			const int new_size = (char *) block.next - (char *) new_block - sizeof(BlockMeta);
+			const long new_size = (char *) block.next - (char *) new_block - sizeof(BlockMeta);
 
 			// Realigning the new block can make it too small, so we need to make sure the new block is big enough.
 			if (new_size > 0) {
@@ -121,7 +121,7 @@ void Memory::split(BlockMeta &block, size_t size) {
 				block.size = size;
 			}
 		} else {
-			const int new_size = (char *) &block + block.size - (char *) new_block;
+			const long new_size = (char *) &block + block.size - (char *) new_block;
 
 			if (new_size > 0) {
 				new_block->size = new_size;
@@ -164,7 +164,7 @@ int Memory::merge() {
 		if (current->free && current->next->free) {
 			current->size += sizeof(BlockMeta) + current->next->size;
 			current->next = current->next->next;
-			count++;
+			++count;
 		} else
 			current = current->next;
 	}

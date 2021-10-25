@@ -39,31 +39,12 @@ extern "C" void stacktrace() {
 	long m5 = 0, rt = 0;
 	asm("$m5 -> %0" : "=r"(m5));
 	size_t i = 0;
-	printf("stacktrace (%ld):\n", m5);
+	asm("<p \"Stacktrace:\\n\">");
 	while (m5 != 0) {
-		asm("<p \"m5 = \"> \n <prd %0> \n <prc %1>" :: "r"(m5), "r"('\n'));
-		// printf("m5 = %ld\n", m5);
 		asm("[%1] -> %0" : "=r"(rt) : "r"(m5 + 16));
-		printf("%2d: %ld\n", i++, rt);
+		printf("%2ld: %ld\n", i++, rt);
 		m5 = *(long *) m5;
 	}
-}
-
-extern "C" void foo5() {
-	stacktrace();
-}
-
-extern "C" void foo4() { foo5(); }
-extern "C" void foo3() { foo4(); }
-extern "C" void foo2() { foo3(); }
-extern "C" void foo1() { foo2(); }
-extern "C" void foo0() { foo1(); }
-
-extern "C" void process(const std::string &str) {
-	prc('<');
-	strprint(str.c_str());
-	prc('>');
-	prc('\n');
 }
 
 extern "C" void kernel_main() {
@@ -131,30 +112,25 @@ extern "C" void kernel_main() {
 		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
 	strprint("Done.\n");
 
-	foo0();
+	// asm("$sp -> $k1");
+	// asm("$fp -> $k2");
+	// asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
+	// if (rt_addr) {
+	// 	*rt_addr += table_wrapper.pmmStart;
+	// } else {
+	// 	strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
+	// 	asm("<halt>");
+	// }
 
-	return;
+	//*
 
-	asm("$sp -> $k1");
-	asm("$fp -> $k2");
-	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
-	if (rt_addr) {
-		*rt_addr += table_wrapper.pmmStart;
-	} else {
-		strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
-		asm("<halt>");
-	}
-
-
-	/*
-
-	asm("%%page on");
-	asm("$k1 + $k3 -> $sp");
-	asm("$k2 + $k3 -> $fp");
+	// asm("%%page on");
+	// asm("$k1 + $k3 -> $sp");
+	// asm("$k2 + $k3 -> $fp");
 
 	([](char *tptr, char *mptr) {
-		long pmm_start;
-		asm("$k3 -> %0" : "=r"(pmm_start));
+		long pmm_start = 0;
+		// asm("$k3 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
@@ -283,56 +259,47 @@ extern "C" void kernel_main() {
 				strprint("ThornFAT driver instantiated.\n");
 				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
 			}
-			//* /
+			//*/
 
-			// for (;;) asm("<rest>");
+		// for (;;) asm("<rest>");
 
-			std::string line;
+		std::string line;
 
-			for (;;) {
-				asm("<rest>");
-				if (-1 < keybrd_index) {
-					const long combined = keybrd_queue[keybrd_index--];
-					const char key = combined & 0xff;
-					long mask = 1l;
-					mask <<= 32;
-					const bool shift = (combined & mask) != 0;
-					const bool alt   = (combined & (mask <<= 1)) != 0;
-					const bool ctrl  = (combined & (mask <<= 1)) != 0;
+		for (;;) {
+			asm("<rest>");
+			if (-1 < keybrd_index) {
+				const long combined = keybrd_queue[keybrd_index--];
+				const char key = combined & 0xff;
+				long mask = 1l;
+				mask <<= 32;
+				const bool shift = (combined & mask) != 0;
+				const bool alt   = (combined & (mask <<= 1)) != 0;
+				const bool ctrl  = (combined & (mask <<= 1)) != 0;
 
-					if (key == 'u' && ctrl) {
-						line.clear();
-						strprint("\e[2K\e[G");
-					} else if (key == 0x7f) {
-						if (!line.empty()) {
-							strprint("\e[D \e[D");
-							line.pop_back();
-						}
-					} else if (key == 0x0a) {
-						if (!line.empty()) {
-							asm("<p \"\\nLine: \\\"\">");
-							strprint(line.c_str());
-							asm("<p \"\\\"\\n\">");
-
-							// decltype(&process) process_ = (decltype(&process)) ((char *) &process + pmm_start);
-							decltype(&process) process_ = (decltype(&process)) ((char *) &process + 0);
-							const std::string process_addr = std::to_string((unsigned long) process_);
-							asm("<prc %0>" :: "r"('!'));
-							// process_(process_addr);
-							asm("<prx %0>" :: "r"(line.c_str()));
-							asm("<prc %0>" :: "r"('!'));
-							line.clear();
-							asm("<prc %0>" :: "r"('!'));
-						}
-					} else if (0x7f < key) {
-						prx(key);
-					} else {
-						line.push_back(key & 0xff);
-						prc(key & 0xff);
+				if (key == 'u' && ctrl) {
+					line.clear();
+					strprint("\e[2K\e[G");
+				} else if (key == 0x7f) {
+					if (!line.empty()) {
+						strprint("\e[D \e[D");
+						line.pop_back();
 					}
-				} else
-					asm("<p \":(\\n\">");
-			}
+				} else if (key == 0x0a) {
+					if (!line.empty()) {
+						asm("<p \"\\nLine: \\\"\">");
+						strprint(line.c_str());
+						asm("<p \"\\\"\\n\">");
+						line.clear();
+					}
+				} else if (0x7f < key) {
+					prx(key);
+				} else {
+					line.push_back(key & 0xff);
+					prc(key & 0xff);
+				}
+			} else
+				asm("<p \":(\\n\">");
+		}
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }
 
@@ -354,12 +321,25 @@ extern "C" {
 	}
 
 	void __attribute__((naked)) pagefault() {
-		asm("63 -> $m0 \n <prc $m0> \n 32 -> $m0 \n <prc $m0> \n <prd $e0> \n <prc $m0> \n <prd $e1> \n 10 -> $m0");
-		asm("<prc $m0> \n <halt>");
+		asm("63 -> $m0               \n\
+		     <prc $m0>               \n\
+		     32 -> $m0               \n\
+		     <prc $m0>               \n\
+		     <prd $e0>               \n\
+		     <prc $m0>               \n\
+		     <prd $e1>               \n\
+		     10 -> $m0               \n\
+		     <prc $m0>               \n\
+		     $k5 == 1 -> $k6         \n\
+		     : pagefault_nope /* if $k6 */ \n\
+		     1 -> $k5                \n\
+		     :: stacktrace           \n\
+		     @pagefault_nope         \n\
+		     <halt>");
 	}
 
 	void __attribute__((naked)) keybrd() {
-		asm("%di                   \n\
+		asm("%di                  \n\
 			[keybrd_index] -> $e3 \n\
 			$e3 < 15 -> $e4       \n\
 			: keybrd_cont if $e4  \n\

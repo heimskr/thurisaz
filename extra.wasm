@@ -30,3 +30,55 @@ __pure_virtual_called: "Pure virtual function called!\n"
 	&__pure_virtual_called -> $a0
 	:: strprint
 	<halt>
+
+@llvm.ctlz.i64
+	[ $t0 // i
+	[ $t1 // mask
+	[ $t2 // -1
+
+	63 -> $t0
+	0 -> $r0
+	$0 - 1 -> $t2
+
+	@__llvm.ctlz.i64_loop
+		1 -> $t1
+		$t1 << $t0 -> $t1
+		$a0 & $t1 -> $t1
+		: __llvm.ctlz.i64_done if $t1
+		$r0++
+		$t0--
+		$t0 == $t2 -> $t1
+		: __llvm.ctlz.i64_done if $t1
+		: __llvm.ctlz.i64_loop
+	@__llvm.ctlz.i64_done
+
+	] $t2
+	] $t1
+	] $t0
+	: $rt
+
+@llvm.ctlz.i32
+	[ $t0 // i
+	[ $t1 // mask
+	[ $t2 // -1
+
+	31 -> $t0
+	0 -> $r0
+	$0 - 1 -> $t2
+
+	@__llvm.ctlz.i32_loop
+		1 -> $t1
+		$t1 << $t0 -> $t1
+		$a0 & $t1 -> $t1
+		: __llvm.ctlz.i32_done if $t1
+		$r0++
+		$t0--
+		$t0 == $t2 -> $t1
+		: __llvm.ctlz.i32_done if $t1
+		: __llvm.ctlz.i32_loop
+	@__llvm.ctlz.i32_done
+
+	] $t2
+	] $t1
+	] $t0
+	: $rt
