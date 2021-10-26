@@ -240,6 +240,18 @@ extern "C" void kernel_main() {
 		std::unique_ptr<Partition> partition;
 		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
 
+		// asm("<halt>");
+
+		([] {
+			std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
+			map.try_emplace("what", -10);
+			printf("Map size: %lu\n", map.size());
+			for (const auto &[key, value]: map)
+				printf("%s -> %d\n", key.c_str(), value);
+		})();
+
+		asm("<halt>");
+
 		for (;;) {
 			asm("<rest>");
 			if (-1 < keybrd_index) {
