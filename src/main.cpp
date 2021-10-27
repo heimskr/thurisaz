@@ -41,7 +41,7 @@ extern "C" void stacktrace() {
 	size_t i = 0;
 	asm("<p \"Stacktrace:\\n\">");
 	while (m5 != 0) {
-		asm("[%1] -> %0" : "=r"(rt) : "r"(m5 + 16));
+		rt = *(long *) (m5 + 16);
 		printf("%2ld: %ld\n", i++, rt);
 		m5 = *(long *) m5;
 	}

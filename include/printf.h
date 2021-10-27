@@ -61,7 +61,7 @@ extern "C" {
 	 * \param format A string that specifies the format of the output
 	 * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
 	 */
-	#define sprintf sprintf_
+#define sprintf sprintf_
 	int sprintf_(char* buffer, const char* format, ...);
 
 	/**
@@ -74,8 +74,8 @@ extern "C" {
 	 *         null character. A value equal or larger than count indicates truncation. Only when the returned value
 	 *         is non-negative and less than count, the string has been completely written.
 	 */
-	#define snprintf  snprintf_
-	#define vsnprintf vsnprintf_
+#define snprintf  snprintf_
+#define vsnprintf vsnprintf_
 	int  snprintf_(char* buffer, size_t count, const char* format, ...);
 	int vsnprintf_(char* buffer, size_t count, const char* format, va_list va);
 
@@ -85,7 +85,7 @@ extern "C" {
 	 * \param va A value identifying a variable arguments list
 	 * \return The number of characters that are WRITTEN into the buffer, not counting the terminating null character
 	 */
-	#define vprintf vprintf_
+#define vprintf vprintf_
 	int vprintf_(const char* format, va_list va);
 
 	/**

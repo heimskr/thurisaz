@@ -38,6 +38,7 @@ $(UNOPTIMIZED): $(LLVMIR)
 
 $(OPTIMIZED): $(UNOPTIMIZED)
 	$(OPT) -S -mem2reg $< -o $@
+	# cp $< $@
 
 linked: $(UNOPTIMIZED)
 
