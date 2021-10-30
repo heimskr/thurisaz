@@ -35,6 +35,11 @@ unsigned long keybrd_queue[16] = {0};
 
 void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite, keybrd};
 
+extern "C" void map_loop(const std::map<std::string, int> &map) {
+	for (const auto &[key, value]: map)
+		printf("%s -> %d\n", key.c_str(), value);
+}
+
 extern "C" void stacktrace() {
 	long m5 = 0, rt = 0;
 	asm("$m5 -> %0" : "=r"(m5));
@@ -233,7 +238,6 @@ extern "C" void kernel_main() {
 		long drive_count = 0;
 		asm("<io devcount> \n $r0 -> %0" : "=r"(drive_count));
 
-		strprint("\e[32m$\e[39;1m ");
 
 		std::unique_ptr<WhyDevice> device;
 		std::unique_ptr<MBR> mbr;
@@ -242,15 +246,19 @@ extern "C" void kernel_main() {
 
 		// asm("<halt>");
 
+		strprint("[[\n");
+
 		([] {
 			std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
 			map.try_emplace("what", -10);
 			printf("Map size: %lu\n", map.size());
-			for (const auto &[key, value]: map)
-				printf("%s -> %d\n", key.c_str(), value);
+			map_loop(map);
 		})();
 
-		asm("<halt>");
+		strprint("]]\n");
+		// asm("<halt>");
+
+		strprint("\e[32m$\e[39;1m ");
 
 		for (;;) {
 			asm("<rest>");
@@ -265,7 +273,7 @@ extern "C" void kernel_main() {
 
 				if (key == 'u' && ctrl) {
 					line.clear();
-					strprint("\e[2K\e[G\e[32m$\e[39;1m ");
+					strprint("\e[2K\e[G\e[0;32m$\e[39;1m ");
 				} else if (key == 0x7f) {
 					if (!line.empty()) {
 						strprint("\e[D \e[D");
@@ -279,7 +287,7 @@ extern "C" void kernel_main() {
 						const size_t size = pieces.size();
 						line.clear();
 						NoisyDestructor prompt("\e[32m$\e[39;1m ");
-						if (cmd == "drives") {
+						if (cmd == "drives" || cmd == "count") {
 							printf("Number of drives: %lu\n", WhyDevice::count());
 						} else if (cmd == "drive") {
 							if (selected_drive == -1)
@@ -352,7 +360,7 @@ extern "C" void kernel_main() {
 					line.push_back(key & 0xff);
 					prc(key & 0xff);
 				}
-			}
+			} else asm("<print %0>" :: "r"(keybrd_index));
 		}
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }
@@ -393,20 +401,17 @@ extern "C" {
 	}
 
 	void __attribute__((naked)) keybrd() {
-		asm("%di                  \n\
-			[keybrd_index] -> $e3 \n\
-			$e3 < 15 -> $e4       \n\
-			: keybrd_cont if $e4  \n\
-			%ei                   \n\
-			: $e0                 \n\
-			@keybrd_cont          \n\
-			keybrd_queue -> $e4   \n\
-			$e3 + 1 -> $e3        \n\
-			$e3 -> [keybrd_index] \n\
-			$e3 * 8               \n\
-			$e4 + $lo -> $e3      \n\
-			$e2 -> [$e3]          \n\
-			%ei                   \n\
-			: $e0                 ");
+		asm("[keybrd_index] -> $e3 \n\
+		     $e3 < 15 -> $e4       \n\
+		     : keybrd_cont if $e4  \n\
+		     : $e0                 \n\
+		     @keybrd_cont          \n\
+		     keybrd_queue -> $e4   \n\
+		     $e3 + 1 -> $e3        \n\
+		     $e3 -> [keybrd_index] \n\
+		     $e3 << 3 -> $e3       \n\
+		     $e4 + $e3 -> $e3      \n\
+		     $e2 -> [$e3]          \n\
+		     : $e0                 ");
 	}
 }
