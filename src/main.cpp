@@ -262,7 +262,7 @@ extern "C" void kernel_main() {
 
 		for (;;) {
 			asm("<rest>");
-			if (-1 < keybrd_index) {
+			while (-1 < keybrd_index) {
 				const long combined = keybrd_queue[keybrd_index--];
 				const char key = combined & 0xff;
 				long mask = 1l;
@@ -360,7 +360,7 @@ extern "C" void kernel_main() {
 					line.push_back(key & 0xff);
 					prc(key & 0xff);
 				}
-			} else asm("<print %0>" :: "r"(keybrd_index));
+			}
 		}
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }
@@ -402,9 +402,8 @@ extern "C" {
 
 	void __attribute__((naked)) keybrd() {
 		asm("[keybrd_index] -> $e3 \n\
-		     $e3 < 15 -> $e4       \n\
-		     : keybrd_cont if $e4  \n\
-		     : $e0                 \n\
+		     $e3 > 14 -> $e4       \n\
+		     : $e0 if $e4          \n\
 		     @keybrd_cont          \n\
 		     keybrd_queue -> $e4   \n\
 		     $e3 + 1 -> $e3        \n\

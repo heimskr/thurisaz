@@ -24,6 +24,31 @@ __pure_virtual_called: "Pure virtual function called!\n"
 	$sp / 2 -> $sp
 	0xcafef00d -> $fp
 	:: kernel_main
+
+	// 255 -> $a0
+	// 0 -> $a1
+	// 15 -> $a2
+	// :: llvm.fshl.i8
+	// <print $r0>
+
+	// 15 -> $a0
+	// 15 -> $a1
+	// 11 -> $a2
+	// :: llvm.fshl.i8
+	// <print $r0>
+
+	// 0 -> $a0
+	// 255 -> $a1
+	// 8 -> $a2
+	// :: llvm.fshl.i8
+	// <print $r0>
+
+	// 305419896 -> $a0
+	// 2882400001 -> $a1
+	// 5 -> $a2
+	// :: llvm.fshl.i32 // 1183502101
+	// <print $r0>
+
 	<halt>
 
 @__cxa_pure_virtual
@@ -81,4 +106,26 @@ __pure_virtual_called: "Pure virtual function called!\n"
 	] $t2
 	] $t1
 	] $t0
+	: $rt
+
+@llvm.fshl.i32
+	// Normally I'd bitwise-and with 0xffffffff, but the masks are getting sign extended for some stupid reason.
+	lui: 0 -> $a0
+	lui: 0 -> $a1
+	$a2 %= 32
+	$a0 <<= 32
+	$a0 | $a1 -> $r0
+	$r0 <<= $a2
+	$r0 >>>= 32
+	: $rt
+
+@llvm.fshl.i8
+	$a0 &= 0xff
+	$a1 &= 0xff
+	$a2 %= 8
+	$a0 <<= 8
+	$a0 | $a1 -> $r0
+	$r0 <<= $a2
+	$r0 >>>= 8
+	$r0 &= 0xff
 	: $rt

@@ -37,7 +37,8 @@ $(UNOPTIMIZED): $(LLVMIR)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)
 
 $(OPTIMIZED): $(UNOPTIMIZED)
-	$(OPT) -S -mem2reg $< -o $@
+	$(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline -instcombine \
+	          -aggressive-instcombine $< -o $@
 	# cp $< $@
 
 linked: $(UNOPTIMIZED)
