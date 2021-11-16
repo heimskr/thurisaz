@@ -4,6 +4,7 @@
 #include <string.h>
 
 #include "util.h"
+#include "Print.h"
 
 struct CHS {
 	uint8_t heads: 8;
@@ -73,4 +74,8 @@ struct MBR {
 		return firstEntry.type == 0xee && secondEntry.type == 0 && thirdEntry.type == 0 && fourthEntry.type == 0;
 	}
 	void debug();
+	~MBR() {
+		strprint("~MBR():\n");
+		debug();
+	}
 } __attribute__((packed));

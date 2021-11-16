@@ -340,10 +340,11 @@ extern "C" void kernel_main() {
 								mbr->diskID[3], mbr->diskID[2], mbr->diskID[1], mbr->diskID[0]);
 							for (int i = 0; i < 4; ++i) {
 								const MBREntry &entry = (&mbr->firstEntry)[i];
-								printf("%d: attributes(0x%02x), type(0x%02x), startLBA(%u), sectors(%u)\n",
-									i, entry.attributes, entry.type, entry.startLBA, entry.sectors);
+								printf("%d: attributes(0x%02x), type(0x%02x), startLBA(%u), sectors(%u) @ 0x%lx\n",
+									i, entry.attributes, entry.type, entry.startLBA, entry.sectors, &entry);
 							}
-							printf("Signature: 0x%02x%02x\n", mbr->signature[1], mbr->signature[0]);
+							printf("Signature: 0x%02x%02x @ 0x%lx\n", mbr->signature[1], mbr->signature[0], &mbr->signature);
+							printf("MBR @ 0x%lx\n", mbr.get());
 						} else if (cmd == "make") {
 							if (!device || selected_drive < 0) {
 								printf("No device selected. Use \e[3mselect\e[23m.\n");
@@ -355,6 +356,8 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
+							printf("MBR @ 0x%lx\n", mbr.get());
+
 							long e0, r0;
 							asm("%2 -> $a1    \n\
 							     <io getsize> \n\
@@ -365,6 +368,7 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
+							mbr->firstEntry.debug();
 							mbr->firstEntry = MBREntry(0, 0xfa, 1, uint32_t(r0 / 512 - 1));
 							printf("r0: %ld -> %u\n", r0, uint32_t(r0 / 512 - 1));
 							printf("Number of blocks: %u\n", mbr->firstEntry.sectors);
@@ -403,6 +407,45 @@ extern "C" void kernel_main() {
 							});
 							if (status != 0)
 								printf("Error: %d\n", status);
+						} else if (cmd == "create") {
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							if (size != 2) {
+								strprint("Usage: create <path>\n");
+								continue;
+							}
+
+							const int status = driver->create(pieces[1].c_str(), 0666, 0, 0);
+							if (status != 0)
+								printf("create error: %ld\n", long(status));
+						} else if (cmd == "write") {
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							if (size < 2) {
+								strprint("Usage: write <path> [data...]\n");
+								continue;
+							}
+
+							const std::string path = pieces[1];
+							std::string data = pieces.size() == 2? "" : pieces[2];
+							for (size_t i = 3; i < pieces.size(); ++i)
+								data += " " + pieces[i];
+
+							int status = driver->truncate(path.c_str(), data.size());
+							if (status != 0) {
+								printf("truncate error: %ld\n", long(status));
+								continue;
+							}
+
+							status = driver->write(path.c_str(), data.c_str(), data.size(), 0);
+							if (status != 0)
+								printf("write error: %ld\n", long(status));
 						} else {
 							strprint("Unknown command.\n");
 						}

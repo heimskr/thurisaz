@@ -247,7 +247,7 @@ namespace ThornFAT::Util {
 // #define RETNERRX()   IFERRNO({ EXIT; })
 // #define IFERRNOXC(b) IFERRNOC({ b; EXIT; })
 // #define CHECKW(s1, s2, n)  WARN(s1, s2 ": " BDR " (%s)", n, STRERR(n))
-#define CHECKW(s1, s2, n)  WARN(s1, s2 ": " BDR, n)
+#define CHECKW(s1, s2, n)  WARN(s1, s2 ": " BLR, long(n))
 #define SCHECK(s1, s2)     IFSTATUS({ DBG_ON(); CHECKW(s1, s2, status); })
 #define SCHECKX(s1, s2)    IFSTATUS({ DBG_ON(); CHECKW(s1, s2, status); EXIT; })
 #define SCHECKE(s1, s2)    IFSTATUS({ CHECKW(s1, s2, status); DBG_ON(); })
