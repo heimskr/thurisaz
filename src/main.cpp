@@ -276,7 +276,7 @@ extern "C" void kernel_main() {
 				} else if (key == 0x0a) {
 					if (!line.empty()) {
 						strprint("\e[0m\n");
-						const std::vector<std::string> pieces = split(line, " ", true);
+						const std::vector<std::string> pieces = split<std::vector>(line, " ", true);
 						const std::string &cmd = pieces[0];
 						const size_t size = pieces.size();
 						line.clear();
