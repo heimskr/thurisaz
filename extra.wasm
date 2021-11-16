@@ -2,13 +2,20 @@
 
 name: "Thurisaz Extra"
 
-#data
+#text
 
-__errno__: (8)
-__assertion_failed: "Assertion failed!\n"
-__pure_virtual_called: "Pure virtual function called!\n"
+%data
 
-#code
+@__errno__
+%8b 0
+
+@__assertion_failed
+%stringz "Assertion failed!\n"
+
+@__pure_virtual_called
+%stringz "Pure virtual function called!\n"
+
+%code
 
 @_Z17___errno_locationv
 	&__errno__ -> $r0

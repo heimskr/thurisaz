@@ -299,7 +299,7 @@ namespace ThornFAT {
 
 
 	int ThornFATDriver::readDir(const DirEntry &dir, std::vector<DirEntry> &entries, std::vector<off_t> *offsets,
-	                         int *first_index) {
+	                            int *first_index) {
 		HELLO(dir.name.str);
 #ifndef DEBUG_DIRREAD
 		METHOD_OFF(INDEX_DIRREAD);

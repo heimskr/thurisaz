@@ -234,29 +234,23 @@ extern "C" void kernel_main() {
 		// for (;;) asm("<rest>");
 
 		std::string line;
+		line.reserve(256);
 		long selected_drive = -1;
 		long drive_count = 0;
 		asm("<io devcount> \n $r0 -> %0" : "=r"(drive_count));
-
 
 		std::unique_ptr<WhyDevice> device;
 		std::unique_ptr<MBR> mbr;
 		std::unique_ptr<Partition> partition;
 		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
-
-		// asm("<halt>");
-
-		strprint("[[\n");
+		std::string cwd("/");
 
 		([] {
-			std::map<std::string, int> map {{"hey", 42}, {"there", 64}, {"friend", 100}};
+			std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
 			map.try_emplace("what", -10);
 			printf("Map size: %lu\n", map.size());
 			map_loop(map);
 		})();
-
-		strprint("]]\n");
-		// asm("<halt>");
 
 		strprint("\e[32m$\e[39;1m ");
 
@@ -350,15 +344,67 @@ extern "C" void kernel_main() {
 									i, entry.attributes, entry.type, entry.startLBA, entry.sectors);
 							}
 							printf("Signature: 0x%02x%02x\n", mbr->signature[1], mbr->signature[0]);
+						} else if (cmd == "make") {
+							if (!device || selected_drive < 0) {
+								printf("No device selected.\n");
+								continue;
+							}
+
+							long e0, r0;
+							asm("%2 -> $a1    \n\
+							     <io getsize> \n\
+							     $e0 -> %0    \n\
+							     $r0 -> %1    " : "=r"(e0), "=r"(r0) : "r"(selected_drive));
+							if (e0 != 0) {
+								printf("getsize failed: %ld\n", e0);
+								continue;
+							}
+
+							MBR mbr;
+							mbr.firstEntry = {0, 0xfa, 1, uint32_t(r0 / 512 - 1)};
+							ssize_t result = device->write(&mbr, sizeof(MBR), 0);
+							if (result < 0)
+								Kernel::panicf("device.write failed: %ld\n", result);
+							partition = std::make_unique<Partition>(*device, mbr.firstEntry);
+							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
+							strprint("ThornFAT driver instantiated.\n");
+							printf("ThornFAT creation %s.\n", driver->make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded"
+								: "failed");
+						} else if (cmd == "driver") {
+							if (!device || selected_drive < 0) {
+								strprint("No device selected.\n");
+								continue;
+							}
+
+							if (!mbr) {
+								strprint("MBR hasn't been read yet. Use readmbr.\n");
+								continue;
+							}
+
+							partition = std::make_unique<Partition>(*device, mbr->firstEntry);
+							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
+							strprint("ThornFAT driver instantiated.\n");
+						} else if (cmd == "ls") {
+							if (!driver) {
+								strprint("Driver not initialized.\n");
+								continue;
+							}
+
+							const std::string path = 1 < size? cwd + "/" + pieces[1] : cwd;
+							const int status = driver->readdir(path.c_str(), [](const char *item, off_t) {
+								printf("- %s\n", item);
+							});
+							if (status != 0)
+								printf("Error: %d\n", status);
 						} else {
 							strprint("Unknown command.\n");
 						}
 					}
 				} else if (0x7f < key) {
-					prx(key);
+					asm("<prx %0>" :: "r"(key));
 				} else {
 					line.push_back(key & 0xff);
-					prc(key & 0xff);
+					asm("<prc %0>" :: "r"(key & 0xff));
 				}
 			}
 		}
