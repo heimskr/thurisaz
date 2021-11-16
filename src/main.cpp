@@ -346,7 +346,12 @@ extern "C" void kernel_main() {
 							printf("Signature: 0x%02x%02x\n", mbr->signature[1], mbr->signature[0]);
 						} else if (cmd == "make") {
 							if (!device || selected_drive < 0) {
-								printf("No device selected.\n");
+								printf("No device selected. Use \e[3mselect\e[23m.\n");
+								continue;
+							}
+
+							if (!mbr) {
+								strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
@@ -360,24 +365,26 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							MBR mbr;
-							mbr.firstEntry = {0, 0xfa, 1, uint32_t(r0 / 512 - 1)};
-							ssize_t result = device->write(&mbr, sizeof(MBR), 0);
+							mbr->firstEntry = MBREntry(0, 0xfa, 1, uint32_t(r0 / 512 - 1));
+							printf("r0: %ld -> %u\n", r0, uint32_t(r0 / 512 - 1));
+							printf("Number of blocks: %u\n", mbr->firstEntry.sectors);
+							mbr->firstEntry.debug();
+							ssize_t result = device->write(mbr.get(), sizeof(MBR), 0);
 							if (result < 0)
 								Kernel::panicf("device.write failed: %ld\n", result);
-							partition = std::make_unique<Partition>(*device, mbr.firstEntry);
+							partition = std::make_unique<Partition>(*device, mbr->firstEntry);
 							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
 							strprint("ThornFAT driver instantiated.\n");
 							printf("ThornFAT creation %s.\n", driver->make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded"
 								: "failed");
 						} else if (cmd == "driver") {
 							if (!device || selected_drive < 0) {
-								strprint("No device selected.\n");
+								strprint("No device selected. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
 							if (!mbr) {
-								strprint("MBR hasn't been read yet. Use readmbr.\n");
+								strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
@@ -386,7 +393,7 @@ extern "C" void kernel_main() {
 							strprint("ThornFAT driver instantiated.\n");
 						} else if (cmd == "ls") {
 							if (!driver) {
-								strprint("Driver not initialized.\n");
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
 
