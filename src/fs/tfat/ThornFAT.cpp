@@ -1647,6 +1647,7 @@ namespace ThornFAT {
 		if (!found.isDirectory()) {
 			// You can't really use readdir with a file.
 			DBG(READDIRH, "Can't readdir() a file " DARR " ENOTDIR");
+			printf("Oh no\n");
 			DBG_ON();
 			return -ENOTDIR;
 		}
@@ -1712,7 +1713,8 @@ namespace ThornFAT {
 
 	int ThornFATDriver::getsize(const char *path, size_t &out) {
 		DirEntry found;
-		int status = find(-1, path, &found);
+		std::string simplified = FS::simplifyPath(path);
+		int status = find(-1, simplified.c_str(), &found);
 		SCHECK("getsize", "find failed");
 		out = found.length;
 		return 0;

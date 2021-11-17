@@ -406,7 +406,7 @@ extern "C" void kernel_main() {
 								printf("- %s\n", item);
 							});
 							if (status != 0)
-								printf("Error: %d\n", status);
+								printf("Error: %ld\n", long(status));
 						} else if (cmd == "create") {
 							if (!driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
@@ -437,15 +437,41 @@ extern "C" void kernel_main() {
 							for (size_t i = 3; i < pieces.size(); ++i)
 								data += " " + pieces[i];
 
-							int status = driver->truncate(path.c_str(), data.size());
+							ssize_t status = driver->truncate(path.c_str(), data.size());
 							if (status != 0) {
 								printf("truncate error: %ld\n", long(status));
 								continue;
 							}
 
 							status = driver->write(path.c_str(), data.c_str(), data.size(), 0);
-							if (status != 0)
+							if (status < 0)
 								printf("write error: %ld\n", long(status));
+						} else if (cmd == "read") {
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							if (size != 2) {
+								strprint("Usage: read <path>\n");
+								continue;
+							}
+
+							const std::string path = pieces[1][0] == '/'? pieces[1] : FS::simplifyPath(cwd, pieces[1]);
+							size_t size;
+							ssize_t status = driver->getsize(path.c_str(), size);
+							if (status != 0) {
+								printf("getsize failed: %ld\n", status);
+								continue;
+							}
+
+							std::string data;
+							data.resize(size);
+							status = driver->read(path.c_str(), &data[0], size, 0);
+							if (status < 0)
+								printf("read failed: %ld\n", status);
+							else
+								printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
 						} else {
 							strprint("Unknown command.\n");
 						}

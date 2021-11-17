@@ -411,8 +411,8 @@ inline int IS_X(const char *p, const char *x) {
 #define TAG_WIDTH 8
 #define HEADER_WIDTH 11
 #define NEWFILE_SKIP_MAX 4
-#define READDIR_MAX_INCLUDE 4
-#define DEFAULT_BLOCKSIZE 8192
+// #define READDIR_MAX_INCLUDE 4
+#define DEFAULT_BLOCKSIZE 512
 
 //////// These options are ones that I almost never have on.
 //////// They exist strictly for the convenience of anyone who uses this program.
