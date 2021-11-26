@@ -122,7 +122,7 @@ namespace ThornFAT {
 
 			/** Gets the root directory of a disk image. Takes an optional pointer that will be filled with the root
 			 *  directory's offset. Returns a pointer to a struct representing the partition's root directory. */
-			DirEntry & getRoot(off_t * = nullptr);
+			DirEntry & getRoot(off_t * = nullptr, bool force = false);
 
 			/** Reads all the directory entries in a given directory and stores them in a vector.
 			 *  Note: can allocate new memory in *entries and *offsets.

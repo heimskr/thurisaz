@@ -304,7 +304,7 @@ extern "C" void kernel_main() {
 
 							partition = std::make_unique<Partition>(*device, mbr->firstEntry);
 							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
-							driver->initData();
+							driver->getRoot(nullptr, true);
 							strprint("ThornFAT driver instantiated.\n");
 						} else if (cmd == "ls") {
 							if (!driver) {

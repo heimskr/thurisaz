@@ -270,7 +270,7 @@ namespace ThornFAT {
 		return 0;
 	}
 
-	DirEntry & ThornFATDriver::getRoot(off_t *offset) {
+	DirEntry & ThornFATDriver::getRoot(off_t *offset, bool force) {
 		HELLO("");
 		ENTER;
 
@@ -282,7 +282,7 @@ namespace ThornFAT {
 		}
 
 		// If the root directory is already cached, we can simply return a reference to the cached entry.
-		if (root.startBlock != UNUSABLE && root.startBlock != 0) {
+		if (root.startBlock != UNUSABLE && root.startBlock != 0 && !force) {
 			DBG("getRoot", "Start block isn't UNUSABLE; returning cached.");
 			EXIT;
 			return root;
