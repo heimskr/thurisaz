@@ -196,6 +196,7 @@ namespace ThornFAT {
 
 			bool initFAT(size_t table_size, size_t block_size);
 			bool initData(size_t table_size, size_t block_size);
+			bool initData();
 
 			bool hasFree(const size_t);
 			ssize_t countFree();

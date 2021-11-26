@@ -1125,6 +1125,10 @@ namespace ThornFAT {
 		return true;
 	}
 
+	bool ThornFATDriver::initData() {
+		return initData(tableSize(superblock.blockCount, superblock.blockSize), superblock.blockSize);
+	}
+
 	bool ThornFATDriver::hasFree(const size_t count) {
 		size_t scanned = 0;
 		size_t block_c = superblock.blockCount;
@@ -1742,12 +1746,6 @@ namespace ThornFAT {
 	}
 
 	bool ThornFATDriver::make(uint32_t block_size) {
-		// int status = partition->clear();
-		// if (status != 0) {
-		// 	DBGF("make", "Clearing partition failed: %s", STRERR(status));
-		// 	return false;
-		// }
-
 		const size_t block_count = partition->length / block_size;
 
 		if (block_count < MINBLOCKS) {
