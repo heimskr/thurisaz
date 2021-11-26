@@ -71,7 +71,7 @@ namespace FS {
 			virtual int mkdir(const char *path, mode_t, uid_t, gid_t) = 0;
 			virtual int truncate(const char *path, off_t size) = 0;
 			virtual int ftruncate(const char *path, off_t size) = 0;
-			virtual int rmdir(const char *path) = 0;
+			virtual int rmdir(const char *path, bool recursive = false) = 0;
 			virtual int unlink(const char *path) = 0;
 			virtual int open(const char *path) = 0;
 			virtual int read(const char *path, void *buffer, size_t size, off_t offset) = 0;

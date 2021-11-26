@@ -161,8 +161,8 @@ extern "C" void kernel_main() {
 
 		strprint("\e[32m$\e[39;1m ");
 
-		debug_enable = 1;
-		debug_disable = 0;
+		debug_enable = 0;
+		debug_disable = 1;
 
 		for (;;) {
 			asm("<rest>");
@@ -243,7 +243,7 @@ extern "C" void kernel_main() {
 								mbr = std::make_unique<MBR>();
 							ssize_t status = device->read(mbr.get(), sizeof(MBR), 0);
 							if (status < 0) {
-								printf("Couldn't read disk: %ld\n", status);
+								printf("Couldn't read disk: %ld\n", -status);
 								continue;
 							}
 							printf("Disk ID: 0x%02x%02x%02x%02x\n",
@@ -314,22 +314,22 @@ extern "C" void kernel_main() {
 
 							const std::string path = 1 < size? cwd + "/" + pieces[1] : cwd;
 							const int status = driver->readdir(path.c_str(), [](const char *item, off_t) {
-								printf("- %s\n", item);
+								printf("%s\n", item);
 							});
 							if (status != 0)
 								printf("Error: %ld\n", long(status));
 						} else if (cmd == "create") {
-							if (!driver) {
-								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
-								continue;
-							}
-
 							if (size != 2) {
 								strprint("Usage: create <path>\n");
 								continue;
 							}
 
-							const int status = driver->create(pieces[1].c_str(), 0666, 0, 0);
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							const int status = driver->create(FS::simplifyPath(cwd, pieces[1]).c_str(), 0666, 0, 0);
 							if (status != 0)
 								printf("create error: %ld\n", long(status));
 						} else if (cmd == "write") {
@@ -372,7 +372,7 @@ extern "C" void kernel_main() {
 							size_t size;
 							ssize_t status = driver->getsize(path.c_str(), size);
 							if (status != 0) {
-								printf("getsize failed: %ld\n", status);
+								printf("getsize failed: %ld\n", -status);
 								continue;
 							}
 
@@ -380,7 +380,7 @@ extern "C" void kernel_main() {
 							data.resize(size);
 							status = driver->read(path.c_str(), &data[0], size, 0);
 							if (status < 0)
-								printf("read failed: %ld\n", status);
+								printf("read failed: %ld\n", -status);
 							else
 								printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
 						} else if (cmd == "cd") {
@@ -401,6 +401,56 @@ extern "C" void kernel_main() {
 								printf("Cannot change directory to %s\n", path.c_str());
 						} else if (cmd == "pwd") {
 							printf("%s\n", cwd.c_str());
+						} else if (cmd == "debug") {
+							if (size != 2 || (pieces[1] != "off" && pieces[1] != "on")) {
+								strprint("Usage: debug <on|off>\n");
+							} else if (pieces[1] == "off") {
+								debug_enable = 0;
+								debug_disable = 1;
+							} else {
+								debug_enable = 1;
+								debug_disable = 0;
+							}
+						} else if (cmd == "rm") {
+							if (size != 2) {
+								strprint("Usage: rm <path>\n");
+								continue;
+							}
+
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							const std::string path = FS::simplifyPath(cwd, pieces[1]);
+							int status = driver->exists(path.c_str());
+							if (status != 0) {
+								strprint("Path not found.\n");
+								continue;
+							}
+
+							if (driver->isdir(path.c_str()))
+								status = driver->rmdir(path.c_str(), true);
+							else
+								status = driver->unlink(path.c_str());
+
+							if (status != 0)
+								printf("Error: %d\n", -status);
+						} else if (cmd == "mkdir") {
+							if (size != 2) {
+								strprint("Usage: mkdir <path>\n");
+								continue;
+							}
+
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							const std::string path = FS::simplifyPath(cwd, pieces[1]);
+							int status = driver->mkdir(path.c_str(), 0755, 0, 0);
+							if (status != 0)
+								printf("Error: %d\n", -status);
 						} else {
 							strprint("Unknown command.\n");
 						}

@@ -109,7 +109,7 @@ namespace ThornFAT {
 			// If it stays 0, there were no (non-free) matches in the directory and the search failed.
 			int found = 0;
 
-			for (i = 0; i < count; i++) {
+			for (i = 0; i < count; ++i) {
 				DirEntry &entry = entries[i];
 				char *fname = entry.name.str;
 				if (search == fname && !isFree(entry)) {
@@ -368,7 +368,7 @@ namespace ThornFAT {
 		block_t block = dir.startBlock;
 		int rem;
 
-		for (size_t i = 0; i < count; i++) {
+		for (size_t i = 0; i < count; ++i) {
 			memcpy(entries.data() + i, raw.data() + sizeof(DirEntry) * i, sizeof(DirEntry));
 
 			// for (size_t j = 0; j < sizeof(DirEntry); ++j) {
@@ -406,7 +406,6 @@ namespace ThornFAT {
 		ENTER;
 		DBGF(FILEREADH, "Reading file \"" BSR "\" of length " BULR " @ " BDR, file.name.str, file.length,
 			file.startBlock * superblock.blockSize);
-		asm("<sleep %0>" :: "r"(500'000));
 		// DBGF("readFile", "file.startBlock = " BDR ", superblock.blockSize = " BUR, file.startBlock,
 		// 	superblock.blockSize);
 		if (file.length == 0) {
@@ -865,7 +864,7 @@ namespace ThornFAT {
 
 			block_t blocks[old_c];
 			block_t block = file.startBlock;
-			for (size_t i = 0; i < old_c; i++) {
+			for (size_t i = 0; i < old_c; ++i) {
 				blocks[i] = block;
 				DBGN(RESIZEH, IMS("Noting") " a FAT block:", blocks[i]);
 				block = readFAT(block);
@@ -875,7 +874,7 @@ namespace ThornFAT {
 			int status = zeroOutFree(file, new_size);
 			SCHECKX(RESIZEH, "fat_zero_out_free status");
 
-			for (size_t i = new_c; i < old_c; i++) {
+			for (size_t i = new_c; i < old_c; ++i) {
 				DBGN(RESIZEH, ILS("Freeing") " a FAT block:", blocks[i]);
 				writeFAT(0, blocks[i]);
 				++blocksFree;
@@ -915,7 +914,7 @@ namespace ThornFAT {
 				++skipped;
 			}
 
-			for (size_t i = 0; i < to_add; i++) {
+			for (size_t i = 0; i < to_add; ++i) {
 				new_block = findFreeBlock();
 				if (new_block == -1) {
 					WARNS(RESIZEH, "Out of space " UDARR " " IDS("ENOSPC"));
@@ -1004,7 +1003,7 @@ namespace ThornFAT {
 
 	block_t ThornFATDriver::findFreeBlock() {
 		auto block_c = superblock.blockCount;
-		for (decltype(block_c) i = 0; i < block_c; i++)
+		for (decltype(block_c) i = 0; i < block_c; ++i)
 			if (readFAT(i) == 0)
 				return i;
 		return UNUSABLE;
@@ -1027,7 +1026,7 @@ namespace ThornFAT {
 		if (count <= 1)
 			return 1;
 
-		for (size_t i = 0; i < count; i++) {
+		for (size_t i = 0; i < count; ++i) {
 			if (hasStuff(entries[i]))
 				return 0;
 		}
@@ -1132,7 +1131,7 @@ namespace ThornFAT {
 	bool ThornFATDriver::hasFree(const size_t count) {
 		size_t scanned = 0;
 		size_t block_c = superblock.blockCount;
-		for (size_t i = 0; i < block_c; i++)
+		for (size_t i = 0; i < block_c; ++i)
 			if (readFAT(i) == 0 && count <= ++scanned)
 				return true;
 		return false;
@@ -1466,7 +1465,7 @@ namespace ThornFAT {
 		return 0;
 	}
 
-	int ThornFATDriver::rmdir(const char *path) {
+	int ThornFATDriver::rmdir(const char *path, bool recursive) {
 		HELLO(path);
 		DBGL;
 		DBGF(RMDIRH, RMETHOD("rmdir") BSTR, path);
@@ -1490,14 +1489,24 @@ namespace ThornFAT {
 			std::vector<DirEntry> entries;
 			status = readDir(found, entries);
 			SCHECK(RMDIRH, "readDir failed");
-
 			const size_t count = entries.size();
-			for (size_t i = 0; i < count; i++)
-				DBGF(RMDIRH, "Existing free? " BSR " (" BSR ")",
-					hasStuff(entries[i])? "no" : "ja", entries[i].name.str);
-
-			WARN(RMDIRH, "Can't remove nonempty directory" SUDARR IDS("ENOTEMPTY") " (length: " BDR ")", found.length);
-			return -ENOTEMPTY;
+			if (recursive) {
+				for (size_t i = 0; i < count; ++i) {
+					if (strcmp(entries[i].name.str, ".") == 0 || strcmp(entries[i].name.str, "..") == 0)
+						continue;
+					const std::string new_path = std::string(path) + "/" + entries[i].name.str;
+					status = entries[i].isDirectory()? rmdir(new_path.c_str(), true) : unlink(new_path.c_str());
+					if (status != 0)
+						return status;
+				}
+			} else {
+				for (size_t i = 0; i < count; ++i)
+					DBGF(RMDIRH, "Existing free? " BSR " (" BSR ")",
+						hasStuff(entries[i])? "no" : "yes", entries[i].name.str);
+				WARN(RMDIRH, "Can't remove nonempty directory" SUDARR IDS("ENOTEMPTY") " (length: " BDR ")",
+					found.length);
+				return -ENOTEMPTY;
+			}
 		}
 
 		forget(found.startBlock);

@@ -265,7 +265,7 @@ namespace ThornFAT {
 			virtual int mkdir(const char *path, mode_t, uid_t, gid_t) override;
 			virtual int truncate(const char *path, off_t size) override;
 			virtual int ftruncate(const char *path, off_t size) override;
-			virtual int rmdir(const char *path) override;
+			virtual int rmdir(const char *path, bool recursive = false) override;
 			virtual int unlink(const char *path) override;
 			virtual int open(const char *path) override;
 			virtual int read(const char *path, void *buffer, size_t size, off_t offset) override;
