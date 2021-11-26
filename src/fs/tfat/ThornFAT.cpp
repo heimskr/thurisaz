@@ -1720,18 +1720,20 @@ namespace ThornFAT {
 		return 0;
 	}
 
-	int ThornFATDriver::isdir(const char *path) {
+	bool ThornFATDriver::isdir(const char *path) {
 		DirEntry found;
-		int status = find(-1, path, &found);
-		SCHECK("isdir", "find failed");
-		return found.isDirectory()? 1 : 0;
+		const int status = find(-1, path, &found);
+		if (status != 0)
+			return false;
+		return found.isDirectory();
 	}
 
-	int ThornFATDriver::isfile(const char *path) {
+	bool ThornFATDriver::isfile(const char *path) {
 		DirEntry found;
-		int status = find(-1, path, &found);
-		SCHECK("isfile", "find failed");
-		return found.isFile()? 1 : 0;
+		const int status = find(-1, path, &found);
+		if (status != 0)
+			return false;
+		return found.isFile();
 	}
 
 	int ThornFATDriver::exists(const char *path) {

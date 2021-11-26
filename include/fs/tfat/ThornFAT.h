@@ -271,8 +271,8 @@ namespace ThornFAT {
 			virtual int readdir(const char *path, FS::DirFiller filler) override;
 			virtual int getattr(const char *path, FS::FileStats &) override;
 			virtual int getsize(const char *path, size_t &out) override;
-			virtual int isdir(const char *path) override;
-			virtual int isfile(const char *path) override;
+			virtual bool isdir(const char *path) override;
+			virtual bool isfile(const char *path) override;
 			virtual int exists(const char *path) override;
 			virtual bool verify() override;
 			virtual void cleanup() override {}

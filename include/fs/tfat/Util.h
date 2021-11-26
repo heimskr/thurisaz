@@ -155,12 +155,11 @@ namespace ThornFAT::Util {
 #define DEBUG_ENABLED (debug_enable == 1 && debug_disable == 0 && debug_disable_method == 0 && debug_disable_external != 1)
 #define FREE(p) { if (p != NULL) { free(p); p = NULL; } }
 #define DEBUG_DEBUG_ENABLED() printf("debug_enable == %d (1), debug_disable_method == %d (0), debug_disable_external " \
-                                     "== %d (!1), logfile == %s (!NULL)\n -> %sabled\n", debug_enable,                 \
-                                     debug_disable_method, debug_disable_external, logfile == NULL? "NULL" : "valid",  \
-                                     DEBUG_ENABLED? "en" : "dis")
+                                     "== %d (!1)\n -> %sabled\n", debug_enable, debug_disable_method, \
+                                     debug_disable_external, DEBUG_ENABLED? "en" : "dis")
 #define IFLOG if (1)
-// #define IFLOGDBG if (DEBUG_ENABLED)
-#define IFLOGDBG if (1)
+#define IFLOGDBG if (DEBUG_ENABLED)
+// #define IFLOGDBG if (1)
 #define FLOG
 #ifdef DEBUG_EVERYTHING
 #define HELLO(s) { printf(": %s(%s)\n", __func__, s); }

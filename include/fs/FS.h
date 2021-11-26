@@ -78,8 +78,8 @@ namespace FS {
 			virtual int readdir(const char *path, DirFiller filler) = 0;
 			virtual int getattr(const char *path, FileStats &) = 0;
 			virtual int getsize(const char *path, size_t &out) = 0;
-			virtual int isdir(const char *path) = 0;
-			virtual int isfile(const char *path) = 0;
+			virtual bool isdir(const char *path) = 0;
+			virtual bool isfile(const char *path) = 0;
 			/** Returns 0 if the file exists or a negative error code otherwise. */
 			virtual int exists(const char *path) = 0;
 			/** Does this partition contain a valid instance of the filesystem? */

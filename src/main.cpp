@@ -15,6 +15,7 @@
 #include "storage/Partition.h"
 #include "storage/WhyDevice.h"
 #include "fs/tfat/ThornFAT.h"
+#include "fs/tfat/Util.h"
 
 extern "C" {
 	void timer();
@@ -117,121 +118,27 @@ extern "C" void kernel_main() {
 		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
 	strprint("Done.\n");
 
-	// asm("$sp -> $k1");
-	// asm("$fp -> $k2");
-	// asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
-	// if (rt_addr) {
-	// 	*rt_addr += table_wrapper.pmmStart;
-	// } else {
-	// 	strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
-	// 	asm("<halt>");
-	// }
+	asm("$sp -> $k1");
+	asm("$fp -> $k2");
+	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
+	if (rt_addr) {
+		*rt_addr += table_wrapper.pmmStart;
+	} else {
+		strprint("\e[31mERROR\e[39m: rt_addr not found!\n");
+		asm("<halt>");
+	}
 
-	//*
-
-	// asm("%%page on");
-	// asm("$k1 + $k3 -> $sp");
-	// asm("$k2 + $k3 -> $fp");
+	asm("%%page on");
+	asm("$k1 + $k3 -> $sp");
+	asm("$k2 + $k3 -> $fp");
 
 	([](char *tptr, char *mptr) {
 		long pmm_start = 0;
-		// asm("$k3 -> %0" : "=r"(pmm_start));
+		asm("$k3 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
-
-		/*
-		long e0, r0;
-		asm("<io devcount>");
-		asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-		printf("Devcount: e0[%d], r0[%d]\n", e0, r0);
-		long device_count = r0;
-
-		std::vector<size_t> device_sizes;
-
-		if (device_count == 0)
-			strprint("No devices detected.\n");
-		else
-			for (long device_id = 0; device_id < device_count; ++device_id) {
-				// strprint("\n\n");
-				// char *name = new char[256];
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("%0 -> $a2" :: "r"(name));
-				// asm("<io getname>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After getname: e0[%d], r0[%d]\n", e0, r0);
-				// if (name[255] != '\0')
-				// 	name[255] = '\0';
-				// printf("Device name: \"%s\"\n", name);
-
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("26 -> $a2" :: "r"(device_id));
-				// asm("<io seekabs>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After seek: e0[%d], r0[%d]\n", e0, r0);
-
-				asm("%0 -> $a1" :: "r"(device_id));
-				asm("<io getsize>");
-				asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				printf("After getsize: e0[%d], r0[%d]\n", e0, r0);
-				device_sizes.push_back(r0);
-
-				// if (strcmp(name, "disk.img") == 0) {
-				// 	asm("%0 -> $a1" :: "r"(device_id));
-				// 	asm("%0 -> $a2 \n 4 -> $a3" :: "r"("Here"));
-				// 	asm("<io write>");
-				// 	asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// 	printf("After write: e0[%d], r0[%d]\n", e0, r0);
-				// }
-
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("0 -> $a2");
-				// asm("<io seekabs>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After seek: e0[%d], r0[%d]\n", e0, r0);
-
-				// char *buffer = new char[256];
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("%0 -> $a2 \n 256 -> $a3" :: "r"(buffer));
-				// asm("<io read>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After read: e0[%d], r0[%d]\n", e0, r0);
-				// printf("Buffer: \"%s\"\n", buffer);
-
-				// asm("0 -> $r0");
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("34 -> $a2");
-				// asm("<io seekrel>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After seekrel: e0[%d], r0[%d]\n", e0, r0);
-
-				// asm("0 -> $r0");
-				// asm("%0 -> $a1" :: "r"(device_id));
-				// asm("<io getcursor>");
-				// asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
-				// printf("After getcursor: e0[%d], r0[%d]\n", e0, r0);
-
-				// delete[] name;
-				// delete[] buffer;
-
-			}
-
-			if (0 < device_count) {
-				WhyDevice device(0);
-				MBR mbr;
-				mbr.firstEntry = {0, 0xfa, 1, uint32_t(device_sizes.at(0) / 512 - 1)};
-				ssize_t result = device.write(&mbr, sizeof(MBR), 0);
-				if (result < 0)
-					Kernel::panicf("device.write failed: %ld\n", result);
-				Partition partition(device, mbr.firstEntry);
-				ThornFAT::ThornFATDriver driver(&partition);
-				strprint("ThornFAT driver instantiated.\n");
-				printf("ThornFAT creation %s.\n", driver.make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded" : "failed");
-			}
-			//*/
-
-		// for (;;) asm("<rest>");
 
 		std::string line;
 		line.reserve(256);
@@ -253,6 +160,9 @@ extern "C" void kernel_main() {
 		})();
 
 		strprint("\e[32m$\e[39;1m ");
+
+		debug_enable = 1;
+		debug_disable = 0;
 
 		for (;;) {
 			asm("<rest>");
@@ -432,7 +342,7 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							const std::string path = pieces[1];
+							const std::string path = FS::simplifyPath(cwd, pieces[1]);
 							std::string data = pieces.size() == 2? "" : pieces[2];
 							for (size_t i = 3; i < pieces.size(); ++i)
 								data += " " + pieces[i];
@@ -472,6 +382,24 @@ extern "C" void kernel_main() {
 								printf("read failed: %ld\n", status);
 							else
 								printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
+						} else if (cmd == "cd") {
+							if (!driver) {
+								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
+								continue;
+							}
+
+							if (size != 2) {
+								strprint("Usage: read <path>\n");
+								continue;
+							}
+
+							const std::string path = FS::simplifyPath(cwd, pieces[1]);
+							if (driver->isdir(path.c_str()))
+								cwd = path;
+							else
+								printf("Cannot change directory to %s\n", path.c_str());
+						} else if (cmd == "pwd") {
+							printf("%s\n", cwd.c_str());
 						} else {
 							strprint("Unknown command.\n");
 						}

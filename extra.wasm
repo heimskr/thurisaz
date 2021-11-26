@@ -15,6 +15,9 @@ name: "Thurisaz Extra"
 @__pure_virtual_called
 %stringz "Pure virtual function called!\n"
 
+@__abort_message
+%stringz "Aborted.\n"
+
 %code
 
 @_Z17___errno_locationv
@@ -136,3 +139,8 @@ name: "Thurisaz Extra"
 	$r0 >>>= 8
 	$r0 &= 0xff
 	: $rt
+
+@llvm.trap
+	&__abort_message -> $a0
+	:: strprint
+	<halt>
