@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 
+#include "Commands.h"
 #include "Kernel.h"
 #include "mal.h"
 #include "P0Wrapper.h"
@@ -142,15 +143,10 @@ extern "C" void kernel_main() {
 
 		std::string line;
 		line.reserve(256);
-		long selected_drive = -1;
 		long drive_count = 0;
 		asm("<io devcount> \n $r0 -> %0" : "=r"(drive_count));
 
-		std::unique_ptr<WhyDevice> device;
-		std::unique_ptr<MBR> mbr;
-		std::unique_ptr<Partition> partition;
-		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
-		std::string cwd("/");
+		Thurisaz::Context context;
 
 		([] {
 			std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
@@ -191,30 +187,25 @@ extern "C" void kernel_main() {
 						const size_t size = pieces.size();
 						line.clear();
 						NoisyDestructor prompt("\e[32m$\e[39;1m ");
-						if (cmd == "drives" || cmd == "count") {
-							printf("Number of drives: %lu\n", WhyDevice::count());
-						} else if (cmd == "drive") {
-							if (selected_drive == -1)
-								strprint("No drive selected.\n");
-							else
-								printf("Selected drive: %ld\n", selected_drive);
+						if (Thurisaz::runCommand(context, pieces)) {
+							continue;
 						} else if (cmd == "select") {
 							if (size != 2) {
 								strprint("Usage: select <drive>\n");
 								continue;
-							} else if (!parseLong(pieces[1], selected_drive) || selected_drive < 0 ||
-							           drive_count <= selected_drive) {
+							} else if (!parseLong(pieces[1], context.selectedDrive) || context.selectedDrive < 0 ||
+							           drive_count <= context.selectedDrive) {
 								strprint("Invalid drive ID.\n");
-								selected_drive = -1;
+								context.selectedDrive = -1;
 							} else {
-								printf("Selected drive %ld.\n", selected_drive);
+								printf("Selected drive %ld.\n", context.selectedDrive);
 							}
 						} else if (cmd == "getsize") {
 							if (size != 1 && size != 2) {
 								strprint("Usage: getsize [drive]\n");
 								continue;
 							}
-							long drive = selected_drive;
+							long drive = context.selectedDrive;
 							if (size == 2 && (!parseLong(pieces[1], drive) || drive < 0 || drive_count <= drive)) {
 								strprint("Invalid drive ID.\n");
 								continue;
@@ -233,87 +224,88 @@ extern "C" void kernel_main() {
 								strprint("Usage: readmbr [drive]\n");
 								continue;
 							}
-							long drive = selected_drive;
+							long drive = context.selectedDrive;
 							if (size == 2 && (!parseLong(pieces[1], drive) || drive < 0 || drive_count <= drive)) {
 								strprint("Invalid drive ID.\n");
 								continue;
 							}
-							device = std::make_unique<WhyDevice>(drive);
-							if (!mbr)
-								mbr = std::make_unique<MBR>();
-							ssize_t status = device->read(mbr.get(), sizeof(MBR), 0);
+							context.device = std::make_unique<WhyDevice>(drive);
+							if (!context.mbr)
+								context.mbr = std::make_unique<MBR>();
+							ssize_t status = context.device->read(context.mbr.get(), sizeof(MBR), 0);
 							if (status < 0) {
 								printf("Couldn't read disk: %ld\n", -status);
 								continue;
 							}
-							printf("Disk ID: 0x%02x%02x%02x%02x\n",
-								mbr->diskID[3], mbr->diskID[2], mbr->diskID[1], mbr->diskID[0]);
+							printf("Disk ID: 0x%02x%02x%02x%02x\n", context.mbr->diskID[3], context.mbr->diskID[2],
+								context.mbr->diskID[1], context.mbr->diskID[0]);
 							for (int i = 0; i < 4; ++i) {
-								const MBREntry &entry = (&mbr->firstEntry)[i];
+								const MBREntry &entry = (&context.mbr->firstEntry)[i];
 								printf("%d: attributes(0x%02x), type(0x%02x), startLBA(%u), sectors(%u) @ 0x%lx\n",
 									i, entry.attributes, entry.type, entry.startLBA, entry.sectors, &entry);
 							}
-							printf("Signature: 0x%02x%02x @ 0x%lx\n", mbr->signature[1], mbr->signature[0], &mbr->signature);
-							printf("MBR @ 0x%lx\n", mbr.get());
+							printf("Signature: 0x%02x%02x @ 0x%lx\n", context.mbr->signature[1],
+								context.mbr->signature[0], &context.mbr->signature);
+							printf("MBR @ 0x%lx\n", context.mbr.get());
 						} else if (cmd == "make") {
-							if (!device || selected_drive < 0) {
+							if (!context.device || context.selectedDrive < 0) {
 								printf("No device selected. Use \e[3mselect\e[23m.\n");
 								continue;
 							}
 
-							if (!mbr) {
+							if (!context.mbr) {
 								strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
-							printf("MBR @ 0x%lx\n", mbr.get());
+							printf("MBR @ 0x%lx\n", context.mbr.get());
 
 							long e0, r0;
 							asm("%2 -> $a1    \n\
 							     <io getsize> \n\
 							     $e0 -> %0    \n\
-							     $r0 -> %1    " : "=r"(e0), "=r"(r0) : "r"(selected_drive));
+							     $r0 -> %1    " : "=r"(e0), "=r"(r0) : "r"(context.selectedDrive));
 							if (e0 != 0) {
 								printf("getsize failed: %ld\n", e0);
 								continue;
 							}
 
-							mbr->firstEntry.debug();
-							mbr->firstEntry = MBREntry(0, 0xfa, 1, uint32_t(r0 / 512 - 1));
+							context.mbr->firstEntry.debug();
+							context.mbr->firstEntry = MBREntry(0, 0xfa, 1, uint32_t(r0 / 512 - 1));
 							printf("r0: %ld -> %u\n", r0, uint32_t(r0 / 512 - 1));
-							printf("Number of blocks: %u\n", mbr->firstEntry.sectors);
-							mbr->firstEntry.debug();
-							ssize_t result = device->write(mbr.get(), sizeof(MBR), 0);
+							printf("Number of blocks: %u\n", context.mbr->firstEntry.sectors);
+							context.mbr->firstEntry.debug();
+							ssize_t result = context.device->write(context.mbr.get(), sizeof(MBR), 0);
 							if (result < 0)
 								Kernel::panicf("device.write failed: %ld\n", result);
-							partition = std::make_unique<Partition>(*device, mbr->firstEntry);
-							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
+							context.partition = std::make_unique<Partition>(*context.device, context.mbr->firstEntry);
+							context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
 							strprint("ThornFAT driver instantiated.\n");
-							printf("ThornFAT creation %s.\n", driver->make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded"
+							printf("ThornFAT creation %s.\n", context.driver->make(sizeof(ThornFAT::DirEntry) * 5)? "succeeded"
 								: "failed");
 						} else if (cmd == "driver") {
-							if (!device || selected_drive < 0) {
+							if (!context.device || context.selectedDrive < 0) {
 								strprint("No device selected. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
-							if (!mbr) {
+							if (!context.mbr) {
 								strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 								continue;
 							}
 
-							partition = std::make_unique<Partition>(*device, mbr->firstEntry);
-							driver = std::make_unique<ThornFAT::ThornFATDriver>(partition.get());
-							driver->getRoot(nullptr, true);
+							context.partition = std::make_unique<Partition>(*context.device, context.mbr->firstEntry);
+							context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
+							context.driver->getRoot(nullptr, true);
 							strprint("ThornFAT driver instantiated.\n");
 						} else if (cmd == "ls") {
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
 
-							const std::string path = 1 < size? cwd + "/" + pieces[1] : cwd;
-							const int status = driver->readdir(path.c_str(), [](const char *item, off_t) {
+							const std::string path = 1 < size? FS::simplifyPath(context.cwd, pieces[1]) : context.cwd;
+							const int status = context.driver->readdir(path.c_str(), [](const char *item, off_t) {
 								printf("%s\n", item);
 							});
 							if (status != 0)
@@ -324,16 +316,17 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
 
-							const int status = driver->create(FS::simplifyPath(cwd, pieces[1]).c_str(), 0666, 0, 0);
+							const int status = context.driver->create(FS::simplifyPath(context.cwd, pieces[1]).c_str(),
+								0666, 0, 0);
 							if (status != 0)
 								printf("create error: %ld\n", long(status));
 						} else if (cmd == "write") {
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
@@ -343,22 +336,22 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							const std::string path = FS::simplifyPath(cwd, pieces[1]);
+							const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
 							std::string data = pieces.size() == 2? "" : pieces[2];
 							for (size_t i = 3; i < pieces.size(); ++i)
 								data += " " + pieces[i];
 
-							ssize_t status = driver->truncate(path.c_str(), data.size());
+							ssize_t status = context.driver->truncate(path.c_str(), data.size());
 							if (status != 0) {
 								printf("truncate error: %ld\n", long(status));
 								continue;
 							}
 
-							status = driver->write(path.c_str(), data.c_str(), data.size(), 0);
+							status = context.driver->write(path.c_str(), data.c_str(), data.size(), 0);
 							if (status < 0)
 								printf("write error: %ld\n", long(status));
 						} else if (cmd == "read") {
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
@@ -368,9 +361,10 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							const std::string path = pieces[1][0] == '/'? pieces[1] : FS::simplifyPath(cwd, pieces[1]);
+							const std::string path = pieces[1][0] == '/'? pieces[1] : FS::simplifyPath(context.cwd,
+								pieces[1]);
 							size_t size;
-							ssize_t status = driver->getsize(path.c_str(), size);
+							ssize_t status = context.driver->getsize(path.c_str(), size);
 							if (status != 0) {
 								printf("getsize failed: %ld\n", -status);
 								continue;
@@ -378,13 +372,13 @@ extern "C" void kernel_main() {
 
 							std::string data;
 							data.resize(size);
-							status = driver->read(path.c_str(), &data[0], size, 0);
+							status = context.driver->read(path.c_str(), &data[0], size, 0);
 							if (status < 0)
 								printf("read failed: %ld\n", -status);
 							else
 								printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
 						} else if (cmd == "cd") {
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
@@ -394,13 +388,13 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							const std::string path = FS::simplifyPath(cwd, pieces[1]);
-							if (driver->isdir(path.c_str()))
-								cwd = path;
+							const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
+							if (context.driver->isdir(path.c_str()))
+								context.cwd = path;
 							else
 								printf("Cannot change directory to %s\n", path.c_str());
 						} else if (cmd == "pwd") {
-							printf("%s\n", cwd.c_str());
+							printf("%s\n", context.cwd.c_str());
 						} else if (cmd == "debug") {
 							if (size != 2 || (pieces[1] != "off" && pieces[1] != "on")) {
 								strprint("Usage: debug <on|off>\n");
@@ -417,22 +411,22 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
 
-							const std::string path = FS::simplifyPath(cwd, pieces[1]);
-							int status = driver->exists(path.c_str());
+							const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
+							int status = context.driver->exists(path.c_str());
 							if (status != 0) {
 								strprint("Path not found.\n");
 								continue;
 							}
 
-							if (driver->isdir(path.c_str()))
-								status = driver->rmdir(path.c_str(), true);
+							if (context.driver->isdir(path.c_str()))
+								status = context.driver->rmdir(path.c_str(), true);
 							else
-								status = driver->unlink(path.c_str());
+								status = context.driver->unlink(path.c_str());
 
 							if (status != 0)
 								printf("Error: %d\n", -status);
@@ -442,13 +436,13 @@ extern "C" void kernel_main() {
 								continue;
 							}
 
-							if (!driver) {
+							if (!context.driver) {
 								strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 								continue;
 							}
 
-							const std::string path = FS::simplifyPath(cwd, pieces[1]);
-							int status = driver->mkdir(path.c_str(), 0755, 0, 0);
+							const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
+							int status = context.driver->mkdir(path.c_str(), 0755, 0, 0);
 							if (status != 0)
 								printf("Error: %d\n", -status);
 						} else {
