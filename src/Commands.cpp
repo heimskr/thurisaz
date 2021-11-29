@@ -228,9 +228,17 @@ namespace Thurisaz {
 
 		commands.emplace("mkdir", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
-			int status = context.driver->mkdir(path.c_str(), 0755, 0, 0);
+			const int status = context.driver->mkdir(path.c_str(), 0755, 0, 0);
 			if (status != 0)
 				printf("Error: %d\n", -status);
 		}, "<path>").setDriverNeeded());
+
+		commands.emplace("mv", Command(2, 2, [](Context &context, const std::vector<std::string> &pieces) {
+			const std::string source = FS::simplifyPath(context.cwd, pieces[1]);
+			const std::string destination = FS::simplifyPath(context.cwd, pieces[2]);
+			const int status = context.driver->rename(source.c_str(), destination.c_str());
+			if (status != 0)
+				printf("Error: %d\n", -status);
+		}, "<source> <destination").setDriverNeeded());
 	}
 }

@@ -1151,7 +1151,6 @@ namespace ThornFAT {
 	bool ThornFATDriver::checkBlock(block_t block) {
 		if (block < 1) {
 			DBGF("checkBlock", "Invalid block: " BDR, block);
-			for (;;);
 			return false;
 		}
 
