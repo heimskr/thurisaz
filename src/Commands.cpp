@@ -181,6 +181,8 @@ namespace Thurisaz {
 			status = context.driver->read(path.c_str(), &data[0], size, 0);
 			if (status < 0)
 				printf("read failed: %ld\n", -status);
+			else if (status == 0)
+				printf("File %s is empty.\n", path.c_str());
 			else
 				printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
 		}, "<path>").setDriverNeeded());

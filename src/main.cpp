@@ -163,7 +163,7 @@ extern "C" void kernel_main() {
 
 		for (;;) {
 			asm("<rest>");
-			for (int i = 0; i <= keybrd_index; ++i) {
+			for (long i = 0; i <= keybrd_index; ++i) {
 				const long combined = keybrd_queue[i];
 				const char key = combined & 0xff;
 				long mask = 1l;
