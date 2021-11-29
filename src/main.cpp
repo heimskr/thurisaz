@@ -158,6 +158,8 @@ extern "C" void kernel_main() {
 
 		debug_enable = 0;
 		debug_disable = 1;
+		std::map<std::string, Thurisaz::Command> commands;
+		Thurisaz::addCommands(commands);
 
 		for (;;) {
 			asm("<rest>");
@@ -186,7 +188,7 @@ extern "C" void kernel_main() {
 						const size_t size = pieces.size();
 						line.clear();
 						NoisyDestructor prompt("\e[32m$\e[39;1m ");
-						if (!Thurisaz::runCommand(context, pieces))
+						if (!Thurisaz::runCommand(commands, context, pieces))
 							strprint("Unknown command.\n");
 					}
 				} else if (0x7f < key) {

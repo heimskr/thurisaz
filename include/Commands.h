@@ -45,7 +45,7 @@ namespace Thurisaz {
 			return (minArgs == -1 || minArgs <= arg_count) && (maxArgs == -1 || arg_count <= maxArgs);
 		}
 
-		void operator()(Context &context, const std::vector<std::string> &pieces) {
+		void operator()(Context &context, const std::vector<std::string> &pieces) const {
 			action(context, pieces);
 		}
 
@@ -70,8 +70,6 @@ namespace Thurisaz {
 		}
 	};
 
-	extern std::map<std::string, Command> commands;
-
-	bool runCommand(Context &, const std::vector<std::string> &);
-	void addCommands();
+	bool runCommand(const std::map<std::string, Command> &, Context &, const std::vector<std::string> &);
+	void addCommands(std::map<std::string, Command> &);
 }

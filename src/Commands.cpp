@@ -8,33 +8,33 @@
 #include "storage/WhyDevice.h"
 
 namespace Thurisaz {
-	std::map<std::string, Command> commands;
-
-	bool runCommand(Context &context, const std::vector<std::string> &pieces) {
+	bool runCommand(const std::map<std::string, Command> &commands, Context &context,
+	                const std::vector<std::string> &pieces) {
 		if (!pieces.empty()) {
 			if (commands.count(pieces.front()) == 0)
 				return false;
-			Command &command = commands.at(pieces.front());
-			if (command.valid(pieces.size() - 1))
-				command(context, pieces);
-			else if (command.usage && command.usage[0] == '\0')
-				printf("Usage: %s\n", pieces.front().c_str());
-			else if (command.usage)
-				printf("Usage: %s %s\n", pieces.front().c_str(), command.usage);
-			else if (command.driverNeeded && !context.driver)
+			const Command &command = commands.at(pieces.front());
+			if (!command.valid(pieces.size() - 1)) {
+				if (command.usage && command.usage[0] == '\0')
+					printf("Usage: %s\n", pieces.front().c_str());
+				else if (command.usage)
+					printf("Usage: %s %s\n", pieces.front().c_str(), command.usage);
+				else
+					strprint("Invalid number of arguments.\n");
+			} else if (command.driverNeeded && !context.driver)
 				strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 			else if (command.deviceNeeded && (!context.device || context.selectedDrive < 0))
 				strprint("No device selected. Use \e[3mselect\e[23m.\n");
 			else if (command.mbrNeeded && !context.mbr)
 				strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 			else
-				strprint("Invalid number of arguments.\n");
+				command(context, pieces);
 			return true;
 		} else
 			return false;
 	}
 
-	void addCommands() {
+	void addCommands(std::map<std::string, Command> &commands) {
 		commands.try_emplace("drives", 0, 0, [](Context &, const std::vector<std::string> &) {
 			printf("Number of drives: %lu\n", WhyDevice::count());
 		});
@@ -75,7 +75,7 @@ namespace Thurisaz {
 				printf("Size of drive %ld: %lu byte%s\n", drive, r0, r0 == 1? "" : "s");
 		}, "[drive]");
 
-		commands.try_emplace("readmbr", 1, 2, [](Context &context, const std::vector<std::string> &pieces) {
+		commands.try_emplace("readmbr", 0, 1, [](Context &context, const std::vector<std::string> &pieces) {
 			long drive = context.selectedDrive;
 			if (pieces.size() == 2 && (!parseLong(pieces[1], drive) || drive < 0 || context.driveCount <= drive)) {
 				strprint("Invalid drive ID.\n");
