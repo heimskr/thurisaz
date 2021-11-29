@@ -240,5 +240,13 @@ namespace Thurisaz {
 			if (status != 0)
 				printf("Error: %d\n", -status);
 		}, "<source> <destination").setDriverNeeded());
+
+		commands.try_emplace("sleep", 1, 1, [](Context &context, const std::vector<std::string> &pieces) {
+			uint64_t micros;
+			if (!parseUlong(pieces[1], micros))
+				strprint("Invalid number.\n");
+			else
+				asm("<sleep %0>" :: "r"(micros));
+		}, "<microseconds>");
 	}
 }

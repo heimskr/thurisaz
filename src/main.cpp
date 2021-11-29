@@ -163,8 +163,8 @@ extern "C" void kernel_main() {
 
 		for (;;) {
 			asm("<rest>");
-			while (-1 < keybrd_index) {
-				const long combined = keybrd_queue[keybrd_index--];
+			for (int i = 0; i <= keybrd_index; ++i) {
+				const long combined = keybrd_queue[i];
 				const char key = combined & 0xff;
 				long mask = 1l;
 				mask <<= 32;
@@ -198,6 +198,8 @@ extern "C" void kernel_main() {
 					asm("<prc %0>" :: "r"(key & 0xff));
 				}
 			}
+
+			keybrd_index = -1;
 		}
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }

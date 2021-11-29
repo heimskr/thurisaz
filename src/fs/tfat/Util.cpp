@@ -122,10 +122,8 @@ namespace ThornFAT::Util {
  * @param  *s1  An info string displayed before the directory entry.
  */
 void dbg(const char *source, int line, const char *s, const char *s1) {
-	if (DEBUG_ENABLED) {
+	if (DEBUG_ENABLED)
 		printf(LOGPAIR " %s" LOGEND, DBGLOGSET(s), s1);
-		asm("<sleep %0>" :: "r"(100'000));
-	}
 }
 
 /**
@@ -135,10 +133,8 @@ void dbg(const char *source, int line, const char *s, const char *s1) {
  * @param  *s2  A second info string.
  */
 void dbg2(const char *source, int line, const char *s, const char *s1, const char *s2) {
-	if (DEBUG_ENABLED) {
+	if (DEBUG_ENABLED)
 		printf(LOGPAIR " %s " BSTR LOGEND, DBGLOGSET(s), s1, s2);
-		asm("<sleep %0>" :: "r"(100'000));
-	}
 }
 
 /**
@@ -148,10 +144,8 @@ void dbg2(const char *source, int line, const char *s, const char *s1, const cha
  * @param   n   A number.
  */
 void dbgn(const char *source, int line, const char *s, const char *s1, int64_t n) {
-	if (DEBUG_ENABLED) {
+	if (DEBUG_ENABLED)
 		printf(LOGPAIR " %s " BLR LOGEND, DBGLOGSET(s), s1, n);
-		asm("<sleep %0>" :: "r"(100'000));
-	}
 }
 
 /**
@@ -161,10 +155,8 @@ void dbgn(const char *source, int line, const char *s, const char *s1, int64_t n
  * @param   n   A number.
  */
 void dbgh(const char *source, int line, const char *s, const char *s1, int64_t n) {
-	if (DEBUG_ENABLED) {
+	if (DEBUG_ENABLED)
 		printf(LOGPAIR " %s " IBS("0x%lx") LOGEND, DBGLOGSET(s), s1, n);
-		asm("<sleep %0>" :: "r"(100'000));
-	}
 }
 
 void indent(int offset) {
