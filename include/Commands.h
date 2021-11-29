@@ -25,6 +25,7 @@ namespace Thurisaz {
 		std::unique_ptr<Partition> partition;
 		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
 		std::string cwd = "/";
+		long driveCount;
 		long selectedDrive;
 	};
 
@@ -33,6 +34,9 @@ namespace Thurisaz {
 		int maxArgs; // -1 = no maximum
 		std::function<void(Context &, const std::vector<std::string> &)> action;
 		const char *usage = nullptr;
+		bool driverNeeded = false;
+		bool deviceNeeded = false;
+		bool mbrNeeded = false;
 
 		Command(int min_args, int max_args, const decltype(action) &action_, const char *usage_ = nullptr):
 			minArgs(min_args), maxArgs(max_args), action(action_), usage(usage_) {}
@@ -47,6 +51,21 @@ namespace Thurisaz {
 
 		Command & setUsage(const char *usage_) {
 			usage = usage_;
+			return *this;
+		}
+
+		Command & setDriverNeeded(const bool needed = true) {
+			driverNeeded = needed;
+			return *this;
+		}
+
+		Command & setDeviceNeeded(const bool needed = true) {
+			deviceNeeded = needed;
+			return *this;
+		}
+
+		Command & setMBRNeeded(const bool needed = true) {
+			mbrNeeded = needed;
 			return *this;
 		}
 	};
