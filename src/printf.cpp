@@ -30,8 +30,9 @@
 //
 ///////////////////////////////////////////////////////////////////////////////
 
-#include <stdbool.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdbool>
+#include <cstdint>
 
 #include "Print.h"
 #include "printf.h"
@@ -755,7 +756,7 @@ extern "C" {
 				}
 
 				case 's': {
-					const char * p = va_arg(va, char *);
+					const char *p = va_arg(va, char *);
 					unsigned int l = _strnlen_s(p, precision? precision : (size_t) -1);
 					// pre padding
 					if (flags & FLAGS_PRECISION) {
