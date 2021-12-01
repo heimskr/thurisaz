@@ -187,9 +187,13 @@ extern "C" void kernel_main() {
 						const std::string &cmd = pieces[0];
 						const size_t size = pieces.size();
 						line.clear();
-						NoisyDestructor prompt("\e[32m$\e[39;1m ");
-						if (!Thurisaz::runCommand(commands, context, pieces))
+						const long status = Thurisaz::runCommand(commands, context, pieces);
+						if (status == Thurisaz::Command::NOT_FOUND)
 							strprint("Unknown command.\n");
+						if (status == 0)
+							strprint("\e[32m$\e[39;1m ");
+						else
+							strprint("\e[31m$\e[39;1m ");
 					}
 				} else if (0x7f < key) {
 					asm("<prx %0>" :: "r"(key));

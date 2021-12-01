@@ -30,9 +30,13 @@ namespace Thurisaz {
 	};
 
 	struct Command {
+		constexpr static long SUCCESS = 0;
+		constexpr static long NOT_FOUND = -1;
+		constexpr static long BAD_ARGUMENTS = -2;
+
 		int minArgs; // -1 = no minimum
 		int maxArgs; // -1 = no maximum
-		std::function<void(Context &, const std::vector<std::string> &)> action;
+		std::function<long(Context &, const std::vector<std::string> &)> action;
 		const char *usage = nullptr;
 		bool driverNeeded = false;
 		bool deviceNeeded = false;
@@ -45,8 +49,8 @@ namespace Thurisaz {
 			return (minArgs == -1 || minArgs <= arg_count) && (maxArgs == -1 || arg_count <= maxArgs);
 		}
 
-		void operator()(Context &context, const std::vector<std::string> &pieces) const {
-			action(context, pieces);
+		long operator()(Context &context, const std::vector<std::string> &pieces) const {
+			return action(context, pieces);
 		}
 
 		Command & setUsage(const char *usage_) {
@@ -70,6 +74,6 @@ namespace Thurisaz {
 		}
 	};
 
-	bool runCommand(const std::map<std::string, Command> &, Context &, const std::vector<std::string> &);
+	int runCommand(const std::map<std::string, Command> &, Context &, const std::vector<std::string> &);
 	void addCommands(std::map<std::string, Command> &);
 }
