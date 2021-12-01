@@ -40,7 +40,6 @@ namespace Thurisaz {
 		const char *usage = nullptr;
 		bool driverNeeded = false;
 		bool deviceNeeded = false;
-		bool mbrNeeded = false;
 
 		Command(int min_args, int max_args, const decltype(action) &action_, const char *usage_ = nullptr):
 			minArgs(min_args), maxArgs(max_args), action(action_), usage(usage_) {}
@@ -65,11 +64,6 @@ namespace Thurisaz {
 
 		Command & setDeviceNeeded(const bool needed = true) {
 			deviceNeeded = needed;
-			return *this;
-		}
-
-		Command & setMBRNeeded(const bool needed = true) {
-			mbrNeeded = needed;
 			return *this;
 		}
 	};

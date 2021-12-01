@@ -1,3 +1,4 @@
+#include "Kernel.h"
 #include "storage/WhyDevice.h"
 
 WhyDevice::WhyDevice(long index_): index(index_) {}
@@ -43,9 +44,23 @@ ssize_t WhyDevice::write(const void *buffer, size_t bytes, size_t byte_offset) {
 	return e0 != 0? -e0 : r0;
 }
 
+long WhyDevice::size() const {
+	long a0, a1, r0, e0;
+	asm("$a0 -> %0 \n $a1 -> %1" : "=r"(a0), "=r"(a1));
+	asm("%0 -> $a1" :: "r"(index));
+	asm("<io getsize>");
+	asm("%0 -> $a0 \n %1 -> $a1" :: "r"(a0), "r"(a1));
+	asm("$e0 -> %0 \n $r0 -> %1" : "=r"(e0), "=r"(r0));
+	if (e0 != 0)
+		Kernel::panicf("getsize failed: %ld", e0);
+	return r0;
+}
+
 size_t WhyDevice::count() {
-	long r0;
+	long a0, r0;
+	asm("$a0 -> %0" : "=r"(a0));
 	asm("<io devcount>");
 	asm("$r0 -> %0" : "=r"(r0));
+	asm("%0 -> $a0" :: "r"(a0));
 	return r0;
 }

@@ -25,8 +25,6 @@ namespace Thurisaz {
 				strprint("Driver not initialized. Use \e[3mdriver\e[23m.\n");
 			else if (command.deviceNeeded && (!context.device || context.selectedDrive < 0))
 				strprint("No device selected. Use \e[3mselect\e[23m.\n");
-			else if (command.mbrNeeded && !context.mbr)
-				strprint("MBR hasn't been read yet. Use \e[3mreadmbr\e[23m.\n");
 			else
 				return command(context, pieces);
 		}
@@ -60,6 +58,7 @@ namespace Thurisaz {
 				return 1;
 			}
 
+			context.device = std::make_unique<WhyDevice>(context.selectedDrive);
 			printf("Selected drive %ld.\n", context.selectedDrive);
 			return 0;
 		}, "<drive>");
@@ -84,67 +83,22 @@ namespace Thurisaz {
 			return 0;
 		}, "[drive]");
 
-		commands.try_emplace("readmbr", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			long drive = context.selectedDrive;
-			if (pieces.size() == 2 && (!parseLong(pieces[1], drive) || drive < 0 || context.driveCount <= drive)) {
-				strprint("Invalid drive ID.\n");
-				return 1;
-			}
-			context.device = std::make_unique<WhyDevice>(drive);
-			if (!context.mbr)
-				context.mbr = std::make_unique<MBR>();
-			ssize_t status = context.device->read(context.mbr.get(), sizeof(MBR), 0);
-			if (status < 0) {
-				printf("Couldn't read disk: %ld\n", -status);
-				return 2;
-			}
-			printf("Disk ID: 0x%02x%02x%02x%02x\n", context.mbr->diskID[3], context.mbr->diskID[2],
-				context.mbr->diskID[1], context.mbr->diskID[0]);
-			for (int i = 0; i < 4; ++i) {
-				const MBREntry &entry = (&context.mbr->firstEntry)[i];
-				printf("%d: attributes(0x%02x), type(0x%02x), startLBA(%u), sectors(%u) @ 0x%lx\n",
-					i, entry.attributes, entry.type, entry.startLBA, entry.sectors, &entry);
-			}
-			printf("Signature: 0x%02x%02x @ 0x%lx\n", context.mbr->signature[1],
-				context.mbr->signature[0], &context.mbr->signature);
-			printf("MBR @ 0x%lx\n", context.mbr.get());
-			return 0;
-		}, "[drive]");
-
 		commands.emplace("make", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			long e0, r0;
-			asm("%2 -> $a1    \n\
-					<io getsize> \n\
-					$e0 -> %0    \n\
-					$r0 -> %1    " : "=r"(e0), "=r"(r0) : "r"(context.selectedDrive));
-			if (e0 != 0) {
-				printf("getsize failed: %ld\n", e0);
-				return e0;
-			}
-
-			context.mbr->firstEntry.debug();
-			context.mbr->firstEntry = MBREntry(0, 0xfa, 1, uint32_t(r0 / 512 - 1));
-			printf("r0: %ld -> %u\n", r0, uint32_t(r0 / 512 - 1));
-			printf("Number of blocks: %u\n", context.mbr->firstEntry.sectors);
-			context.mbr->firstEntry.debug();
-			ssize_t result = context.device->write(context.mbr.get(), sizeof(MBR), 0);
-			if (result < 0)
-				Kernel::panicf("device.write failed: %ld\n", result);
-			context.partition = std::make_unique<Partition>(*context.device, context.mbr->firstEntry);
+			context.partition = std::make_unique<Partition>(*context.device, 0, context.device->size());
 			context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
 			strprint("ThornFAT driver instantiated.\n");
 			const bool success = context.driver->make(sizeof(ThornFAT::DirEntry) * 5);
 			printf("ThornFAT creation %s.\n", success? "succeeded" : "failed");
 			return success? 0 : 1;
-		}, "").setDeviceNeeded().setMBRNeeded());
+		}, "").setDeviceNeeded());
 
 		commands.emplace("driver", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			context.partition = std::make_unique<Partition>(*context.device, context.mbr->firstEntry);
+			context.partition = std::make_unique<Partition>(*context.device, 0, context.device->size());
 			context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
 			context.driver->getRoot(nullptr, true);
 			strprint("ThornFAT driver instantiated.\n");
 			return 0;
-		}, "").setDeviceNeeded().setMBRNeeded());
+		}, "").setDeviceNeeded());
 
 		commands.emplace("ls", Command(0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = 1 < pieces.size()? FS::simplifyPath(context.cwd, pieces[1]) : context.cwd;
@@ -174,11 +128,13 @@ namespace Thurisaz {
 				printf("truncate error: %ld\n", long(status));
 			} else {
 				status = context.driver->write(path.c_str(), data.c_str(), data.size(), 0);
-				if (status < 0)
-					printf("write error: %ld\n", long(status));
+				if (status < 0) {
+					printf("write error: %ld\n", long(-status));
+					return -status;
+				}
 			}
 
-			return -status;
+			return 0;
 		}, "<path> [data...]").setDriverNeeded());
 
 		commands.emplace("read", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
@@ -288,10 +244,7 @@ namespace Thurisaz {
 		}, "<microseconds>");
 
 		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &pieces) -> long {
-			long status = runCommand(commands, context, {"select", "0"});
-			if (status)
-				return status;
-			status = runCommand(commands, context, {"readmbr"});
+			const long status = runCommand(commands, context, {"select", "0"});
 			if (status)
 				return status;
 			return runCommand(commands, context, {"driver"});
