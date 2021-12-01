@@ -296,5 +296,10 @@ namespace Thurisaz {
 				return status;
 			return runCommand(commands, context, {"driver"});
 		});
+
+		commands.try_emplace("clear", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			strprint("\e[2J\e[3J\e[H");
+			return 0;
+		});
 	}
 }
