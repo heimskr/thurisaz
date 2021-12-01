@@ -286,5 +286,15 @@ namespace Thurisaz {
 			asm("<sleep %0>" :: "r"(micros));
 			return 0;
 		}, "<microseconds>");
+
+		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &pieces) -> long {
+			long status = runCommand(commands, context, {"select", "0"});
+			if (status)
+				return status;
+			status = runCommand(commands, context, {"readmbr"});
+			if (status)
+				return status;
+			return runCommand(commands, context, {"driver"});
+		});
 	}
 }
