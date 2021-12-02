@@ -279,6 +279,6 @@ namespace ThornFAT {
 			virtual void cleanup() override {}
 			bool make(uint32_t block_size);
 
-			ThornFATDriver(Partition *);
+			ThornFATDriver(std::shared_ptr<Partition>);
 	};
 }

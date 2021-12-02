@@ -8,7 +8,7 @@
 // #define VERIFY_WRITES
 // #define VERIFY_WRITES_QUIETLY
 
-Partition::Partition(StorageDevice &parent_, const MBREntry &entry):
+Partition::Partition(std::shared_ptr<StorageDevice> parent_, const MBREntry &entry):
 	Partition(parent_, entry.startLBA * 512ul, entry.sectors * 512ul) {}
 
 ssize_t Partition::read(void *buffer, size_t size, size_t byte_offset) {

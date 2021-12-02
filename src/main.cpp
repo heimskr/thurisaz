@@ -141,10 +141,12 @@ extern "C" void kernel_main() {
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
 
+		Kernel kernel;
+
 		std::string line;
 		line.reserve(256);
 
-		Thurisaz::Context context;
+		Thurisaz::Context context(kernel);
 		asm("<io devcount> \n $r0 -> %0" : "=r"(context.driveCount));
 
 		([] {

@@ -60,7 +60,7 @@ namespace FS {
 
 	class Driver {
 		public:
-			Partition *partition;
+			std::shared_ptr<Partition> partition;
 			virtual ~Driver() {}
 			virtual int rename(const char *path, const char *newpath) = 0;
 			virtual int release(const char *path) = 0;
@@ -90,7 +90,7 @@ namespace FS {
 			Driver() = delete;
 			Driver(const Driver &) = delete;
 			Driver(Driver &&) = delete;
-			Driver(Partition *partition_): partition(partition_) {}
+			Driver(std::shared_ptr<Partition> partition_): partition(partition_) {}
 
 			Driver & operator=(const Driver &) = delete;
 			Driver & operator=(Driver &&) = delete;

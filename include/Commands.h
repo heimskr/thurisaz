@@ -6,9 +6,9 @@
 #include <string>
 #include <vector>
 
-struct WhyDevice;
-struct MBR;
+struct Kernel;
 struct Partition;
+struct WhyDevice;
 
 namespace FS {
 	class Driver;
@@ -20,13 +20,14 @@ namespace ThornFAT {
 
 namespace Thurisaz {
 	struct Context {
-		std::unique_ptr<WhyDevice> device;
-		std::unique_ptr<MBR> mbr;
-		std::unique_ptr<Partition> partition;
-		std::unique_ptr<ThornFAT::ThornFATDriver> driver;
+		Kernel &kernel;
+		std::shared_ptr<WhyDevice> device;
+		std::shared_ptr<Partition> partition;
+		std::shared_ptr<ThornFAT::ThornFATDriver> driver;
 		std::string cwd = "/";
-		long driveCount;
+		unsigned long driveCount;
 		long selectedDrive;
+		Context(Kernel &kernel_): kernel(kernel_) {}
 	};
 
 	struct Command {

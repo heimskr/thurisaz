@@ -21,7 +21,7 @@ namespace ThornFAT {
 
 	const char ThornFATDriver::nothing[sizeof(DirEntry)] = {0};
 
-	ThornFATDriver::ThornFATDriver(Partition *partition_): Driver(partition_) {
+	ThornFATDriver::ThornFATDriver(std::shared_ptr<Partition> partition_): Driver(partition_) {
 		root.startBlock = UNUSABLE;
 		readSuperblock(superblock);
 	}

@@ -4,7 +4,6 @@
 #include "util.h"
 #include "fs/tfat/ThornFAT.h"
 #include "fs/tfat/Util.h"
-#include "storage/MBR.h"
 #include "storage/WhyDevice.h"
 
 namespace Thurisaz {
@@ -58,7 +57,7 @@ namespace Thurisaz {
 				return 1;
 			}
 
-			context.device = std::make_unique<WhyDevice>(context.selectedDrive);
+			context.device = std::make_shared<WhyDevice>(context.selectedDrive);
 			printf("Selected drive %ld.\n", context.selectedDrive);
 			return 0;
 		}, "<drive>");
@@ -84,8 +83,8 @@ namespace Thurisaz {
 		}, "[drive]");
 
 		commands.emplace("make", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			context.partition = std::make_unique<Partition>(*context.device, 0, context.device->size());
-			context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
+			context.partition = std::make_shared<Partition>(context.device, 0, context.device->size());
+			context.driver = std::make_shared<ThornFAT::ThornFATDriver>(context.partition);
 			strprint("ThornFAT driver instantiated.\n");
 			const bool success = context.driver->make(sizeof(ThornFAT::DirEntry) * 5);
 			printf("ThornFAT creation %s.\n", success? "succeeded" : "failed");
@@ -93,55 +92,55 @@ namespace Thurisaz {
 		}, "").setDeviceNeeded());
 
 		commands.emplace("driver", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			context.partition = std::make_unique<Partition>(*context.device, 0, context.device->size());
-			context.driver = std::make_unique<ThornFAT::ThornFATDriver>(context.partition.get());
+			context.partition = std::make_shared<Partition>(context.device, 0, context.device->size());
+			context.driver = std::make_shared<ThornFAT::ThornFATDriver>(context.partition);
 			context.driver->getRoot(nullptr, true);
 			strprint("ThornFAT driver instantiated.\n");
 			return 0;
 		}, "").setDeviceNeeded());
 
-		commands.emplace("ls", Command(0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("ls", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = 1 < pieces.size()? FS::simplifyPath(context.cwd, pieces[1]) : context.cwd;
-			const int status = context.driver->readdir(path.c_str(), [](const char *item, off_t) {
+			const int status = context.kernel.readdir(path.c_str(), [](const char *item, off_t) {
 				printf("%s\n", item);
 			});
 			if (status != 0)
-				printf("Error: %ld\n", long(status));
+				printf("Error: %ld\n", -long(status));
 			return -status;
-		}, "[path]").setDriverNeeded());
+		}, "[path]");
 
-		commands.emplace("create", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			const int status = context.driver->create(FS::simplifyPath(context.cwd, pieces[1]).c_str(), 0666, 0, 0);
+		commands.try_emplace("create", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			const int status = context.kernel.create(FS::simplifyPath(context.cwd, pieces[1]).c_str(), 0666, 0, 0);
 			if (status != 0)
-				printf("create error: %ld\n", long(status));
+				printf("create error: %ld\n", -long(status));
 			return -status;
-		}, "<path>").setDriverNeeded());
+		}, "<path>");
 
-		commands.emplace("write", Command(1, -1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("write", 1, -1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
 			std::string data = pieces.size() == 2? "" : pieces[2];
 			for (size_t i = 3; i < pieces.size(); ++i)
 				data += " " + pieces[i];
 
-			ssize_t status = context.driver->truncate(path.c_str(), data.size());
+			ssize_t status = context.kernel.truncate(path.c_str(), data.size());
 			if (status != 0) {
-				printf("truncate error: %ld\n", long(status));
+				printf("truncate error: %ld\n", -long(status));
 			} else {
-				status = context.driver->write(path.c_str(), data.c_str(), data.size(), 0);
+				status = context.kernel.write(path.c_str(), data.c_str(), data.size(), 0);
 				if (status < 0) {
-					printf("write error: %ld\n", long(-status));
+					printf("write error: %ld\n", -long(status));
 					return -status;
 				}
 			}
 
 			return 0;
-		}, "<path> [data...]").setDriverNeeded());
+		}, "<path> [data...]");
 
-		commands.emplace("read", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("read", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = pieces[1][0] == '/'? pieces[1] : FS::simplifyPath(context.cwd,
 				pieces[1]);
 			size_t size;
-			ssize_t status = context.driver->getsize(path.c_str(), size);
+			ssize_t status = context.kernel.getsize(path.c_str(), size);
 			if (status != 0) {
 				printf("getsize failed: %ld\n", -status);
 				return -status;
@@ -149,7 +148,7 @@ namespace Thurisaz {
 
 			std::string data;
 			data.resize(size);
-			status = context.driver->read(path.c_str(), &data[0], size, 0);
+			status = context.kernel.read(path.c_str(), &data[0], size, 0);
 			if (status < 0) {
 				printf("read failed: %ld\n", -status);
 				return -status;
@@ -161,18 +160,18 @@ namespace Thurisaz {
 				printf("Read %lu byte%s:\n%s\n", status, status == 1? "" : "s", data.c_str());
 
 			return 0;
-		}, "<path>").setDriverNeeded());
+		}, "<path>");
 
-		commands.emplace("cd", Command(0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("cd", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
-			if (context.driver->isdir(path.c_str())) {
+			if (context.kernel.isdir(path.c_str())) {
 				context.cwd = path;
 				return 0;
 			}
 
 			printf("Cannot change directory to %s\n", path.c_str());
 			return 1;
-		}, "<path>").setDriverNeeded());
+		}, "<path>");
 
 		commands.try_emplace("pwd", -1, -1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			printf("%s\n", context.cwd.c_str());
@@ -196,41 +195,41 @@ namespace Thurisaz {
 			return 0;
 		}, "<on|off>");
 
-		commands.emplace("rm", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("rm", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
-			int status = context.driver->exists(path.c_str());
+			int status = context.kernel.exists(path.c_str());
 			if (status != 0) {
 				strprint("Path not found.\n");
 				return 1;
 			}
 
-			if (context.driver->isdir(path.c_str()))
-				status = context.driver->rmdir(path.c_str(), true);
+			if (context.kernel.isdir(path.c_str()))
+				status = context.kernel.rmdir(path.c_str(), true);
 			else
-				status = context.driver->unlink(path.c_str());
+				status = context.kernel.unlink(path.c_str());
 
 			if (status != 0)
 				printf("Error: %d\n", -status);
 
 			return -status;
-		}, "<path>").setDriverNeeded());
+		}, "<path>");
 
-		commands.emplace("mkdir", Command(1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("mkdir", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
-			const int status = context.driver->mkdir(path.c_str(), 0755, 0, 0);
+			const int status = context.kernel.mkdir(path.c_str(), 0755, 0, 0);
 			if (status != 0)
 				printf("Error: %d\n", -status);
 			return -status;
-		}, "<path>").setDriverNeeded());
+		}, "<path>");
 
-		commands.emplace("mv", Command(2, 2, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("mv", 2, 2, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string source = FS::simplifyPath(context.cwd, pieces[1]);
 			const std::string destination = FS::simplifyPath(context.cwd, pieces[2]);
-			const int status = context.driver->rename(source.c_str(), destination.c_str());
+			const int status = context.kernel.rename(source.c_str(), destination.c_str());
 			if (status != 0)
 				printf("Error: %d\n", -status);
 			return -status;
-		}, "<source> <destination").setDriverNeeded());
+		}, "<source> <destination>");
 
 		commands.try_emplace("sleep", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			uint64_t micros;
@@ -252,6 +251,37 @@ namespace Thurisaz {
 
 		commands.try_emplace("clear", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			strprint("\e[2J\e[3J\e[H");
+			return 0;
+		});
+
+		commands.try_emplace("mount", 2, 2, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			unsigned long index;
+			if (!parseUlong(pieces[1], index) || context.driveCount <= index) {
+				strprint("Invalid device index.\n");
+				return 1;
+			}
+
+			const std::string mountpoint = FS::simplifyPath(context.cwd, pieces[2]);
+			auto device = std::make_shared<WhyDevice>(index);
+			auto partition = std::make_shared<Partition>(device, 0, device->size());
+			auto driver = std::make_shared<ThornFAT::ThornFATDriver>(partition);
+			if (!context.kernel.mount(mountpoint, driver)) {
+				printf("Mounting at %s failed.\n", mountpoint.c_str());
+				return 1;
+			}
+
+			printf("Mounted device %lu at %s.\n", index, mountpoint.c_str());
+			return 0;
+		});
+
+		commands.try_emplace("mounts", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			if (context.kernel.mounts.empty())
+				strprint("Nothing is mounted.\n");
+			else
+				for (const auto &[mountpoint, driver]: context.kernel.mounts) {
+					strprint(mountpoint.c_str());
+					asm("<prc %0>" :: "r"('\n'));
+				}
 			return 0;
 		});
 	}
