@@ -243,10 +243,7 @@ namespace Thurisaz {
 		}, "<microseconds>");
 
 		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &pieces) -> long {
-			const long status = runCommand(commands, context, {"select", "0"});
-			if (status)
-				return status;
-			return runCommand(commands, context, {"driver"});
+			return runCommand(commands, context, {"mount", "0", "/"});
 		});
 
 		commands.try_emplace("clear", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
@@ -283,6 +280,16 @@ namespace Thurisaz {
 					asm("<prc %0>" :: "r"('\n'));
 				}
 			return 0;
+		});
+
+		commands.try_emplace("unmount", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			if (context.kernel.unmount(pieces[1])) {
+				printf("Unmounted %s.\n", pieces[1].c_str());
+				return 0;
+			}
+
+			printf("Couldn't unmount %s.\n", pieces[1].c_str());
+			return 1;
 		});
 	}
 }

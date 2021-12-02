@@ -47,6 +47,25 @@ bool Kernel::mount(const std::string &path, std::shared_ptr<FS::Driver> driver) 
 	return true;
 }
 
+bool Kernel::unmount(const std::string &path) {
+	const std::string simplified = FS::simplifyPath(path);
+	if (mounts.count(simplified) != 0) {
+		mounts.erase(simplified);
+		return true;
+	}
+
+	const size_t size = simplified.size();
+	for (const auto &[mountpoint, driver]: mounts) {
+		const size_t msize = mountpoint.size();
+		if (msize < size && simplified.substr(0, msize) == mountpoint) {
+			mounts.erase(mountpoint);
+			return true;
+		}
+	}
+
+	return false;
+}
+
 int Kernel::rename(const char *path, const char *newpath) {
 	std::string relative, path_str(path);
 	std::shared_ptr<FS::Driver> driver;

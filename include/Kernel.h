@@ -15,6 +15,7 @@ struct Kernel {
 
 	bool getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out);
 	bool mount(const std::string &, std::shared_ptr<FS::Driver>);
+	bool unmount(const std::string &);
 
 	int rename(const char *path, const char *newpath);
 	int release(const char *path);
