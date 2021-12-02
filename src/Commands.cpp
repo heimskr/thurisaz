@@ -5,6 +5,7 @@
 #include "fs/tfat/ThornFAT.h"
 #include "fs/tfat/Util.h"
 #include "storage/WhyDevice.h"
+#include "wasm/BinaryParser.h"
 
 namespace Thurisaz {
 	int runCommand(const std::map<std::string, Command> &commands, Context &context,
@@ -161,6 +162,30 @@ namespace Thurisaz {
 
 			return 0;
 		}, "<path>");
+
+		commands.try_emplace("run", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
+			size_t size;
+			ssize_t status = context.kernel.getsize(path.c_str(), size);
+			if (status != 0) {
+				printf("getsize failed: %ld\n", -status);
+				return -status;
+			}
+
+			std::string data;
+			data.resize(size);
+			status = context.kernel.read(path.c_str(), &data[0], size, 0);
+			if (status < 0) {
+				printf("read failed: %ld\n", -status);
+				return -status;
+			}
+
+			Wasmc::BinaryParser parser(data);
+			printf("Meta: %lu\nCode: %lu\nData: %lu\nSymbols: %lu\nDebug: %lu\nRelocation: %lu\nEnd: %lu\n",
+				parser.getMetaOffset(), parser.getCodeOffset(), parser.getDataOffset(), parser.getSymbolTableOffset(),
+				parser.getDebugOffset(), parser.getRelocationOffset(), parser.getEndOffset());
+			return 0;
+		});
 
 		commands.try_emplace("cd", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
 			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
