@@ -103,12 +103,12 @@ extern "C" void kernel_main() {
 
 	char * const bitmap_start = (char *) (memsize / 10);
 	const size_t page_count   = updiv(memsize, 65536);
-	const size_t table_count  = Paging::getTableCount(page_count);
-	const size_t tables_size  = table_count * 2048 + 2047;
+	// const size_t table_count  = Paging::getTableCount(page_count);
+	// const size_t tables_size  = table_count * 2048 + 2047;
 	char * const page_tables_start  = bitmap_start + page_count / 8;
-	char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
-	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
-	char * const application_start  = (char *) (memsize / 2);
+	// char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
+	// char * const kernel_stack_start = (char *) (memsize * 2 / 5);
+	// char * const application_start  = (char *) (memsize / 2);
 
 	Memory memory;
 #ifndef ENABLE_PAGING
@@ -190,9 +190,9 @@ extern "C" void kernel_main() {
 				const char key = combined & 0xff;
 				long mask = 1l;
 				mask <<= 32;
-				const bool shift = (combined & mask) != 0;
-				const bool alt   = (combined & (mask <<= 1)) != 0;
-				const bool ctrl  = (combined & (mask <<= 1)) != 0;
+				// const bool shift = (combined & mask) != 0;
+				// const bool alt   = (combined & (mask << 1)) != 0;
+				const bool ctrl  = (combined & (mask << 2)) != 0;
 
 				if (key == 'u' && ctrl) {
 					line.clear();
@@ -206,8 +206,6 @@ extern "C" void kernel_main() {
 					if (!line.empty()) {
 						strprint("\e[0m\n");
 						const std::vector<std::string> pieces = split<std::vector>(line, " ", true);
-						const std::string &cmd = pieces[0];
-						const size_t size = pieces.size();
 						line.clear();
 						const long status = Thurisaz::runCommand(commands, context, pieces);
 						if (status == Thurisaz::Command::NOT_FOUND)

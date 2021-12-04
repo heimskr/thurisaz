@@ -25,7 +25,7 @@ namespace Thurisaz {
 		std::shared_ptr<Partition> partition;
 		std::shared_ptr<ThornFAT::ThornFATDriver> driver;
 		std::string cwd = "/";
-		unsigned long driveCount;
+		long driveCount;
 		long selectedDrive;
 		Context(Kernel &kernel_): kernel(kernel_) {}
 	};

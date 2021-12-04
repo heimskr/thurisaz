@@ -1,8 +1,14 @@
 diff --git a/include/endian.h b/include/endian.h
-index 172c4320..9c745ece 100644
+index 172c4320..2a1081d1 100644
 --- a/include/endian.h
 +++ b/include/endian.h
-@@ -28,7 +28,7 @@ static __inline uint32_t __bswap32(uint32_t __x)
+@@ -23,12 +23,12 @@ static __inline uint16_t __bswap16(uint16_t __x)
+ 
+ static __inline uint32_t __bswap32(uint32_t __x)
+ {
+-	return __x>>24 | __x>>8&0xff00 | __x<<8&0xff0000 | __x<<24;
++	return __x>>24 | (__x>>8&0xff00) | (__x<<8&0xff0000) | __x<<24;
+ }
  
  static __inline uint64_t __bswap64(uint64_t __x)
  {

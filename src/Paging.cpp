@@ -6,7 +6,6 @@
 #include "util.h"
 
 #define NOFREE() do { strprint("\e[31mERROR\e[39m: No free pages!\n"); asm("<halt>"); } while (false)
-#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~MASK04) | PRESENT)
 
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
@@ -46,7 +45,7 @@ namespace Paging {
 			tables[7][i] = addr2entry5((void *) (PAGE_SIZE * (512 + i)));
 			tables[8][i] = addr2entry5((void *) (PAGE_SIZE * (768 + i)));
 		}
-		for (char i = 0; i < 16; ++i)
+		for (unsigned i = 0; i < 16; ++i)
 			asm("$0 - 1 -> %0" : "=r"(bitmap[i]));
 	}
 
@@ -69,7 +68,7 @@ namespace Paging {
 	}
 
 	long Tables::findFree(size_t start) const {
-		volatile long negative_one = 0;
+		volatile unsigned long negative_one = 0;
 		volatile long one = 1;
 		asm("$0 - 1 -> %0" : "=r"(negative_one));
 		for (size_t i = start / (8 * sizeof(Bitmap)); i < pageCount / (8 * sizeof(Bitmap)); ++i) {
@@ -114,10 +113,10 @@ namespace Paging {
 		}
 
 		// TODO: verify.
-		long index = 0;
+		size_t index = 0;
 		for (; index + consecutive_count <= pageCount;) {
 			const long new_index = findFree(index);
-			long i = 1;
+			size_t i = 1;
 			if (new_index == -1)
 				goto nope;
 			index = new_index;
@@ -205,7 +204,7 @@ namespace Paging {
 		// I'm aware that it's possible for a page to be both executable and writable if the code-data boundary
 		// falls within the page. There's nothing I can really do about it.
 
-		return ((Entry) addr) & ~MASK5 | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
+		return (((Entry) addr) & ~MASK5) | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
 	}
 }
 

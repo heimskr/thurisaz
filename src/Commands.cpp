@@ -84,7 +84,7 @@ namespace Thurisaz {
 			return 0;
 		}, "[drive]");
 
-		commands.emplace("make", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.emplace("make", Command(0, 0, [](Context &context, const std::vector<std::string> &) -> long {
 			context.partition = std::make_shared<Partition>(context.device, 0, context.device->size());
 			context.driver = std::make_shared<ThornFAT::ThornFATDriver>(context.partition);
 			strprint("ThornFAT driver instantiated.\n");
@@ -93,7 +93,7 @@ namespace Thurisaz {
 			return success? 0 : 1;
 		}, "").setDeviceNeeded());
 
-		commands.emplace("driver", Command(0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.emplace("driver", Command(0, 0, [](Context &context, const std::vector<std::string> &) -> long {
 			context.partition = std::make_shared<Partition>(context.device, 0, context.device->size());
 			context.driver = std::make_shared<ThornFAT::ThornFATDriver>(context.partition);
 			context.driver->getRoot(nullptr, true);
@@ -185,7 +185,7 @@ namespace Thurisaz {
 			parser.parse();
 			// We start at PAGE_SIZE instead of 0 so that segfaults are more easily catchable.
 			const size_t code_offset = Paging::PAGE_SIZE;
-			const size_t data_offset = Paging::PAGE_SIZE + upalign(parser.getDataOffset(), Paging::PAGE_SIZE);
+			const size_t data_offset = code_offset + upalign(parser.getDataOffset(), Paging::PAGE_SIZE);
 			const size_t pages_needed = updiv(data_offset + parser.getDataLength(), Paging::PAGE_SIZE);
 			printf("Pages needed: %lu\n", pages_needed);
 			parser.applyRelocation(code_offset, data_offset);
@@ -206,7 +206,24 @@ namespace Thurisaz {
 			status = posix_memalign((void **) &table_array, 2048, table_bytes);
 			if (status || !table_array)
 				Kernel::panicf("Couldn't allocate %lu bytes (%d)", table_bytes, status);
-			printf("Allocated %lu bytes.\n", table_bytes);
+			printf("Allocated %lu bytes at %ld.\n", table_bytes, table_array);
+			asm("memset %0 x $0 -> %1" :: "r"(table_bytes), "r"(table_array));
+			Paging::Table *table_ptr = table_array;
+
+			std::vector<void *> p5_tables, p4_tables, p3_tables, p2_tables, p1_tables;
+			size_t p5s = pages_needed;
+			char *address = (char *) code_offset;
+			while (0 < p5s) {
+				const size_t in_chunk = p5s % 256;
+				Paging::Entry *p5 = *table_ptr++;
+				for (unsigned i = 0; i < in_chunk; ++i) {
+
+				}
+
+				p5s -= in_chunk;
+			}
+
+			// Set up the page tables
 
 			// Run the process
 
@@ -220,7 +237,7 @@ namespace Thurisaz {
 		});
 
 		commands.try_emplace("cd", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
+			const std::string path = FS::simplifyPath(context.cwd, pieces.size() == 1? "" : pieces[1]);
 			if (context.kernel.isdir(path.c_str())) {
 				context.cwd = path;
 				return 0;
@@ -230,12 +247,12 @@ namespace Thurisaz {
 			return 1;
 		}, "<path>");
 
-		commands.try_emplace("pwd", -1, -1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("pwd", 0, 0, [](Context &context, const std::vector<std::string> &) -> long {
 			printf("%s\n", context.cwd.c_str());
 			return 0;
 		}, "");
 
-		commands.try_emplace("debug", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("debug", 1, 1, [](Context &, const std::vector<std::string> &pieces) -> long {
 			if (pieces[1] != "off" && pieces[1] != "on") {
 				strprint("Usage: debug <on|off>\n");
 				return Command::BAD_ARGUMENTS;
@@ -288,7 +305,7 @@ namespace Thurisaz {
 			return -status;
 		}, "<source> <destination>");
 
-		commands.try_emplace("sleep", 1, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("sleep", 1, 1, [](Context &, const std::vector<std::string> &pieces) -> long {
 			uint64_t micros;
 			if (!parseUlong(pieces[1], micros)) {
 				strprint("Invalid number.\n");
@@ -299,18 +316,18 @@ namespace Thurisaz {
 			return 0;
 		}, "<microseconds>");
 
-		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &) -> long {
 			return runCommand(commands, context, {"mount", "0", "/"});
 		});
 
-		commands.try_emplace("clear", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("clear", 0, 0, [](Context &, const std::vector<std::string> &) -> long {
 			strprint("\e[2J\e[3J\e[H");
 			return 0;
 		});
 
 		commands.try_emplace("mount", 2, 2, [](Context &context, const std::vector<std::string> &pieces) -> long {
-			unsigned long index;
-			if (!parseUlong(pieces[1], index) || context.driveCount <= index) {
+			long index;
+			if (!parseLong(pieces[1], index) || index < 0 || context.driveCount <= index) {
 				strprint("Invalid device index.\n");
 				return 1;
 			}
@@ -328,7 +345,7 @@ namespace Thurisaz {
 			return 0;
 		});
 
-		commands.try_emplace("mounts", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("mounts", 0, 0, [](Context &context, const std::vector<std::string> &) -> long {
 			if (context.kernel.mounts.empty())
 				strprint("Nothing is mounted.\n");
 			else
@@ -349,13 +366,13 @@ namespace Thurisaz {
 			return 1;
 		});
 
-		commands.try_emplace("halt", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("halt", 0, 0, [](Context &, const std::vector<std::string> &) -> long {
 			strprint("Halted.\n");
 			asm("<halt>");
 			return 0;
 		});
 
-		commands.try_emplace("exit", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+		commands.try_emplace("exit", 0, 0, [](Context &, const std::vector<std::string> &) -> long {
 			return Command::EXIT_SHELL;
 		});
 	}

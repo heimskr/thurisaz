@@ -116,17 +116,10 @@ namespace Wasmc {
 
 	void BinaryParser::applyRelocation(size_t code_offset, size_t data_offset) {
 		std::vector<uint8_t> data_bytes;
-
-		// TODO!
-
-		printf("Code: %lu\nData: %lu\nSymbols: %lu\nDebug: %lu\n", offsets.code, offsets.data, offsets.symbolTable, offsets.debug);
-		printf("Relocation: %lu\nEnd: %lu\n", offsets.relocation, offsets.end);
-		printf("relocationData.size() == %lu\n", relocationData.size());
-
 		bool code_changed = false, data_changed = false;
 
 		for (const RelocationData &relocation: relocationData) {
-			if (relocation.symbolIndex < 0 || symbols.size() <= relocation.symbolIndex)
+			if (relocation.symbolIndex < 0 || long(symbols.size()) <= relocation.symbolIndex)
 				Kernel::panicf("Couldn't find symbol at index %ld\n", relocation.symbolIndex);
 
 			const SymbolTableEntry &symbol = symbols.at(relocation.symbolIndex);
@@ -137,7 +130,6 @@ namespace Wasmc {
 				address = address - offsets.code + code_offset;
 
 			if (relocation.isData) {
-				printf("Data: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbol.label.c_str(), relocation.offset);
 				if (!data_changed) {
 					for (Long data: rawData)
 						for (int i = 0; i < 8; ++i)
@@ -157,7 +149,6 @@ namespace Wasmc {
 						Kernel::panicf("Invalid RelocationType: %d\n", relocation.type);
 				}
 			} else {
-				printf("Code: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbol.label.c_str(), relocation.offset);
 				if (relocation.type == RelocationType::Upper4)
 					address >>= 32;
 				else if (relocation.type == RelocationType::Lower4)

@@ -5,6 +5,8 @@
 
 #include "P0Wrapper.h"
 
+#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~MASK04) | PRESENT)
+
 namespace Paging {
 	constexpr uint64_t PRESENT    = 1;
 	constexpr uint64_t WRITABLE   = 2;
@@ -40,7 +42,7 @@ namespace Paging {
 
 			Tables() = delete;
 			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):
-			tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count), wrapper(tables_) {
+			wrapper(tables_), tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count) {
 				asm("[ 0] -> %0" : "=r"(codeStart));
 				asm("[ 8] -> %0" : "=r"(dataStart));
 				asm("[24] -> %0" : "=r"(debugStart));
