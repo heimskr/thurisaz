@@ -85,7 +85,6 @@ name: "Thurisaz Extra"
 	$sp / 2 -> $sp
 	0xcafef00d -> $fp
 	:: kernel_main
-	%page off
 	[__atexit_count] -> $m0
 	@main.atexit.loop
 		$m0 <= 0 -> $m1

@@ -18,6 +18,8 @@
 #include "fs/tfat/ThornFAT.h"
 #include "fs/tfat/Util.h"
 
+#define ENABLE_PAGING
+
 struct ctor_set {
 	int32_t priority;
 	void (*ctor)();
@@ -109,9 +111,10 @@ extern "C" void kernel_main() {
 	char * const application_start  = (char *) (memsize / 2);
 
 	Memory memory;
+#ifndef ENABLE_PAGING
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
+#endif
 
-	// + 2047: hack to add enough space for alignment.
 	uint64_t *tables = (uint64_t *) upalign((uintptr_t) page_tables_start, 2048);
 	// The first table is P0.
 	asm("%%setpt %0" :: "r"(tables));
@@ -139,7 +142,9 @@ extern "C" void kernel_main() {
 		asm("<halt>");
 	}
 
+#ifdef ENABLE_PAGING
 	asm("%%page on");
+#endif
 	asm("$k1 + $k3 -> $sp");
 	asm("$k2 + $k3 -> $fp");
 
