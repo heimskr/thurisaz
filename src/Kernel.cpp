@@ -26,12 +26,24 @@ void __attribute__((noreturn)) Kernel::panicf(const char *format, ...) {
 }
 
 bool Kernel::getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out) {
-	for (const auto &[mountpoint, driver]: mounts)
-		if (mountpoint.size() <= path.size() && path.substr(0, mountpoint.size()) == mountpoint) {
-			relative_out = path.substr(mountpoint.size());
-			driver_out = driver;
-			return true;
-		}
+	size_t largest_length = 0;
+	const std::shared_ptr<FS::Driver> *largest_driver = nullptr;
+	for (const auto &[mountpoint, driver]: mounts) {
+		const size_t msize = mountpoint.size();
+		if (msize <= path.size() && path.substr(0, msize) == mountpoint)
+			if (largest_length < msize) {
+				largest_length = msize;
+				largest_driver = &driver;
+			}
+	}
+
+	if (largest_driver) {
+		// When largest_length is 1, the path is "/".
+		relative_out = largest_length == 1? path : path.substr(largest_length);
+		driver_out = *largest_driver;
+		return true;
+	}
+
 	return false;
 }
 
