@@ -19,11 +19,12 @@
 #include "fs/tfat/Util.h"
 
 extern "C" {
-	void timer();
-	void pagefault();
-	void inexec();
-	void bwrite();
-	void keybrd();
+	void int_system();
+	void int_timer();
+	void int_pagefault();
+	void int_inexec();
+	void int_bwrite();
+	void int_keybrd();
 }
 
 struct NoisyDestructor {
@@ -35,7 +36,7 @@ struct NoisyDestructor {
 long keybrd_index = 0;
 unsigned long keybrd_queue[16] = {0};
 
-void (*table[])() = {0, 0, timer, 0, pagefault, inexec, bwrite, keybrd};
+void (*table[])() = {int_system, 0, int_timer, 0, int_pagefault, int_inexec, int_bwrite, int_keybrd};
 
 extern "C" void map_loop(const std::map<std::string, int> &map) {
 	for (const auto &[key, value]: map)
@@ -211,23 +212,29 @@ extern "C" void kernel_main() {
 }
 
 extern "C" {
-	void __attribute__((naked)) inexec() {
+	void __attribute__((naked)) int_system() {
+		asm("<p \"System: \"> \n\
+		     <prd $a0> \n\
+		     <halt>");
+	}
+
+	void __attribute__((naked)) int_inexec() {
 		asm("<p \"IE\\n\">");
 		asm("<halt>");
 	}
 
-	void __attribute__((naked)) bwrite() {
+	void __attribute__((naked)) int_bwrite() {
 		asm("<p \"BW\\n\">");
 		asm("<halt>");
 	}
 
-	void __attribute__((naked)) timer() {
+	void __attribute__((naked)) int_timer() {
 		asm("<p \"TI\\n\">");
 		asm("%time 2000000");
 		asm("<rest>");
 	}
 
-	void __attribute__((naked)) pagefault() {
+	void __attribute__((naked)) int_pagefault() {
 		asm("63 -> $m0               \n\
 		     <prc $m0>               \n\
 		     32 -> $m0               \n\
@@ -245,7 +252,7 @@ extern "C" {
 		     <halt>");
 	}
 
-	void __attribute__((naked)) keybrd() {
+	void __attribute__((naked)) int_keybrd() {
 		asm("[keybrd_index] -> $e3 \n\
 		     $e3 > 14 -> $e4       \n\
 		     : $e0 if $e4          \n\

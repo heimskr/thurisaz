@@ -181,9 +181,6 @@ namespace Thurisaz {
 			}
 
 			Wasmc::BinaryParser parser(data);
-			printf("Meta: %lu\nCode: %lu\nData: %lu\nSymbols: %lu\nDebug: %lu\nRelocation: %lu\nEnd: %lu\n",
-				parser.getMetaOffset(), parser.getCodeOffset(), parser.getDataOffset(), parser.getSymbolTableOffset(),
-				parser.getDebugOffset(), parser.getRelocationOffset(), parser.getEndOffset());
 			return 0;
 		});
 
