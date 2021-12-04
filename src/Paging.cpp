@@ -31,8 +31,6 @@ namespace Paging {
 	}
 
 	void Tables::bootstrap() {
-		uintptr_t memsize;
-		asm("? mem -> %0" : "=r"(memsize));
 		// Assumes that the kernel isn't larger than 256 pages (16 MiB).
 		tables[0][0] = ADDR2ENTRY04(&tables[1]);
 		tables[1][0] = ADDR2ENTRY04(&tables[2]);
@@ -181,10 +179,9 @@ namespace Paging {
 		const uintptr_t low = (uintptr_t) addr - (uintptr_t) addr % PAGE_SIZE, high = low + PAGE_SIZE;
 		const uintptr_t code = (uintptr_t) codeStart, data = (uintptr_t) dataStart;
 
-		bool executable = codeStart <= addr && addr < dataStart;
-		if (!executable) {
+		bool executable = codeStart <= addr && high < uintptr_t(dataStart);
+		if (!executable)
 			executable = (low <= code && code < high) || (code <= low && low < data);
-		}
 
 		const bool writable = data < high;
 

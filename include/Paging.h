@@ -41,8 +41,8 @@ namespace Paging {
 			Tables() = delete;
 			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):
 			tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count), wrapper(tables_) {
-				asm("[ 8] -> %0" : "=r"(codeStart));
-				asm("[16] -> %0" : "=r"(dataStart));
+				asm("[ 0] -> %0" : "=r"(codeStart));
+				asm("[ 8] -> %0" : "=r"(dataStart));
 				asm("[24] -> %0" : "=r"(debugStart));
 			}
 

@@ -1,15 +1,11 @@
 #include "mal.h"
 #include "memset.h"
+#include "printf.h"
 
 Memory *global_memory = nullptr;
 
 // #define DEBUG_ALLOCATION
-
 // #define PROACTIVE_PAGING
-
-// #ifdef DEBUG_ALLOCATION
-#include "printf.h"
-// #endif
 
 Memory::Memory(char *start_, char *high_): start(start_), high(high_), end(start_) {
 	start = (char *) realign((uintptr_t) start);
@@ -21,7 +17,7 @@ Memory::Memory(): Memory((char *) 0, (char *) 0) {}
 
 uintptr_t Memory::realign(uintptr_t val, size_t alignment) {
 #ifdef DEBUG_ALLOCATION
-	printf("realign(0x%lx, %lu)\n", val, alignment);
+	printf("realign(%ld, %ld)\n", val, alignment);
 #endif
 	if (alignment == 0)
 		return val;
@@ -33,10 +29,10 @@ uintptr_t Memory::realign(uintptr_t val, size_t alignment) {
 
 Memory::BlockMeta * Memory::findFreeBlock(BlockMeta * &last, size_t size) {
 #ifdef DEBUG_ALLOCATION
-	printf("findFreeBlock(0x%lx, %lu)\n", last, size);
+	printf("findFreeBlock(%ld, %lu)\n", last, size);
 #endif
 	BlockMeta *current = base;
-	while (current && !(current->free && current->size >= size)) {
+	while (current && !(current->free && size <= current->size)) {
 		last = current;
 		current = current->next;
 	}
@@ -45,7 +41,7 @@ Memory::BlockMeta * Memory::findFreeBlock(BlockMeta * &last, size_t size) {
 
 Memory::BlockMeta * Memory::requestSpace(BlockMeta *last, size_t size, size_t alignment) {
 #ifdef DEBUG_ALLOCATION
-	printf("requestSpace(0x%lx, %lu)\n", last, size);
+	printf("requestSpace(%ld, %lu)\n", last, size);
 #endif
 	BlockMeta *block = (BlockMeta *) realign((uintptr_t) end, alignment);
 
@@ -101,7 +97,7 @@ void * Memory::allocate(size_t size, size_t alignment) {
 
 void Memory::split(BlockMeta &block, size_t size) {
 #ifdef DEBUG_ALLOCATION
-	printf("split(0x%lx, %lu)\n", &block, size);
+	printf("split(%ld, %lu)\n", &block, size);
 #endif
 	if (block.size > size + sizeof(BlockMeta)) {
 		// We have enough space to split the block, unless alignment takes up too much.
@@ -136,14 +132,14 @@ void Memory::split(BlockMeta &block, size_t size) {
 
 Memory::BlockMeta * Memory::getBlock(void *ptr) {
 #ifdef DEBUG_ALLOCATION
-	printf("getBlock(0x%lx)\n", ptr);
+	printf("getBlock(%ld)\n", ptr);
 #endif
 	return (BlockMeta *) ptr - 1;
 }
 
 void Memory::free(void *ptr) {
 #ifdef DEBUG_ALLOCATION
-	printf("free(0x%lx)\n", ptr);
+	printf("free(%ld)\n", ptr);
 #endif
 	if (!ptr)
 		return;
@@ -174,7 +170,7 @@ int Memory::merge() {
 
 void Memory::setBounds(char *new_start, char *new_high) {
 #ifdef DEBUG_ALLOCATION
-	printf("setBounds(0x%lx, 0x%lx)\n", new_start, new_high);
+	printf("setBounds(%ld, %ld)\n", new_start, new_high);
 #endif
 	start = (char *) realign((uintptr_t) new_start);
 	highestAllocated = reinterpret_cast<uintptr_t>(start);
@@ -217,14 +213,14 @@ extern "C" void free(void *ptr) {
 extern "C" int posix_memalign(void **memptr, size_t alignment, size_t size) {
 	// Return EINVAL if the alignment isn't zero or a power of two or is less than the size of a void pointer.
 #ifdef DEBUG_ALLOCATION
-	printf("\e[2mmemalign(0x%lx)\e[22m\n", memptr);
+	printf("\e[2mmemalign(%ld)\e[22m\n", memptr);
 #endif
 	if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void *))
 		return 22; // EINVAL
 	if (memptr) {
 		*memptr = global_memory? global_memory->allocate(size, alignment) : nullptr;
 #ifdef DEBUG_ALLOCATION
-		printf("\e[2m(a=%lu, s=%lu) -> 0x%lx\e[22m\n", alignment, size, *memptr);
+		printf("\e[2m(a=%lu, s=%lu) -> %ld\e[22m\n", alignment, size, *memptr);
 #endif
 	}
 	return 0;

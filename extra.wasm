@@ -18,7 +18,25 @@ name: "Thurisaz Extra"
 @__abort_message
 %stringz "Aborted.\n"
 
+@__atexit_fn
+%8b 0
+
+@__atexit_arg
+%8b 0
+
+@__atexit_dso_handle
+%8b 0
+
 %code
+
+@__cxa_atexit
+	&__atexit_fn -> $m0
+	$a0 -> [$m0]
+	&__atexit_arg -> $m0
+	$a1 -> [$m0]
+	&__atexit_dso_handle -> $m0
+	$a2 -> [$m0]
+	: $rt
 
 @_Z17___errno_locationv
 	&__errno__ -> $r0
@@ -34,6 +52,13 @@ name: "Thurisaz Extra"
 	$sp / 2 -> $sp
 	0xcafef00d -> $fp
 	:: kernel_main
+	@main.atexit
+	[__atexit_fn] -> $m0
+	: main.atexit.jump if $m0
+	: main.halt
+	@main.atexit.jump
+	:: $m0
+	@main.halt
 	<halt>
 
 @__cxa_pure_virtual

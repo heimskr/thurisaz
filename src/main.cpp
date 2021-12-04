@@ -18,6 +18,15 @@
 #include "fs/tfat/ThornFAT.h"
 #include "fs/tfat/Util.h"
 
+struct ctor_set {
+	int32_t priority;
+	void (*ctor)();
+	char *data;
+};
+
+extern ctor_set *__ctors_start;
+extern ctor_set *__ctors_end;
+
 extern "C" {
 	void int_system();
 	void int_timer();
@@ -142,6 +151,9 @@ extern "C" void kernel_main() {
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
 
+		for (ctor_set *set = __ctors_start; set != __ctors_end; ++set)
+			set->ctor();
+
 		Kernel kernel;
 
 		std::string line;
@@ -224,8 +236,10 @@ extern "C" {
 	}
 
 	void __attribute__((naked)) int_bwrite() {
-		asm("<p \"BW\\n\">");
-		asm("<halt>");
+		asm("<p \"BW \"> \n\
+		     <prd $e2>   \n\
+			 <p \"\\n\"> \n\
+		     <halt>");
 	}
 
 	void __attribute__((naked)) int_timer() {

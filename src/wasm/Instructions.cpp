@@ -71,10 +71,6 @@ namespace Wasmc {
 	std::set<Opcode> JTYPES {
 		0b000000001111, // Jump
 		0b000000010000, // Jump Conditional
-		0b000000101100, // Jump If Positive
-		0b000000101101, // Jump If Negative
-		0b000000101110, // Jump If Zero
-		0b000000101111, // Jump If Nonzero
 	};
 
 	std::map<std::string, Opcode> OPCODES {
@@ -167,10 +163,6 @@ namespace Wasmc {
 		{"sgi",    0b000000101001},
 		{"sgei",   0b000000101010},
 		{"cmpi",   0b000000101011},
-		{"jp",     0b000000101100},
-		{"jn",     0b000000101101},
-		{"jz",     0b000000101110},
-		{"jnz",    0b000000101111},
 		{"time",   0b000000110000},
 		{"timei",  0b000000110001},
 		{"ring",   0b000000110010},
