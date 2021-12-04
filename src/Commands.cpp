@@ -313,5 +313,11 @@ namespace Thurisaz {
 			printf("Couldn't unmount %s.\n", pieces[1].c_str());
 			return 1;
 		});
+
+		commands.try_emplace("halt", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			strprint("Halted.\n");
+			asm("<halt>");
+			return 0;
+		});
 	}
 }
