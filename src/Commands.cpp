@@ -194,15 +194,23 @@ namespace Thurisaz {
 			if (!start)
 				Kernel::panicf("Couldn't allocate %lu pages", pages_needed);
 
-			printf("start[%ld]\n", start);
-
 			for (size_t i = 0, max = parser.rawCode.size(); i < max; ++i)
 				*((uint64_t *) ((char *) start + tables.pmmStart) + i) = parser.rawCode[i];
 
 			for (size_t i = 0, max = parser.rawData.size(); i < max; ++i)
 				*((uint64_t *) ((char *) start + tables.pmmStart + Paging::PAGE_SIZE) + i) = parser.rawData[i];
 
+
+			Paging::Table *table_array = nullptr;
+			const size_t table_bytes = sizeof(Paging::Table) * Paging::getTableCount(pages_needed);
+			status = posix_memalign((void **) &table_array, 2048, table_bytes);
+			if (status || !table_array)
+				Kernel::panicf("Couldn't allocate %lu bytes (%d)", table_bytes, status);
+			printf("Allocated %lu bytes.\n", table_bytes);
+
 			// Run the process
+
+			free(table_array);
 
 			const size_t index = (uintptr_t) start / Paging::PAGE_SIZE;
 			for (size_t i = 0; i < pages_needed; ++i)

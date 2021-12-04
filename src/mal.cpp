@@ -215,8 +215,10 @@ extern "C" int posix_memalign(void **memptr, size_t alignment, size_t size) {
 #ifdef DEBUG_ALLOCATION
 	printf("\e[2mmemalign(%ld)\e[22m\n", memptr);
 #endif
-	if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void *))
+	if ((alignment & (alignment - 1)) != 0 || alignment < sizeof(void *)) {
+		printf("Bad alignment: %lu\n", alignment);
 		return 22; // EINVAL
+	}
 	if (memptr) {
 		*memptr = global_memory? global_memory->allocate(size, alignment) : nullptr;
 #ifdef DEBUG_ALLOCATION
