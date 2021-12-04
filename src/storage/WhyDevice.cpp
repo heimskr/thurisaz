@@ -64,3 +64,11 @@ size_t WhyDevice::count() {
 	asm("%0 -> $a0" :: "r"(a0));
 	return r0;
 }
+
+bool WhyDevice::operator==(const StorageDevice &other) const {
+	if (this == &other)
+		return true;
+	if (const WhyDevice *other_why_device = dynamic_cast<const WhyDevice *>(&other))
+		return index == other_why_device->index;
+	return false;
+}

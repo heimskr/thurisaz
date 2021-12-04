@@ -62,6 +62,9 @@ namespace FS {
 		public:
 			std::shared_ptr<Partition> partition;
 			virtual ~Driver() {}
+
+			virtual bool operator==(const Driver &) const;
+
 			virtual int rename(const char *path, const char *newpath) = 0;
 			virtual int release(const char *path) = 0;
 			virtual int statfs(const char *, DriverStats &) = 0;

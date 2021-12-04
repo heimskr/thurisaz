@@ -37,12 +37,11 @@ bool Kernel::getDriver(const std::string &path, std::string &relative_out, std::
 
 bool Kernel::mount(const std::string &path, std::shared_ptr<FS::Driver> driver) {
 	const std::string simplified = FS::simplifyPath(path);
-	const size_t size = simplified.size();
-	for (const auto &[mountpoint, driver]: mounts) {
-		const size_t msize = mountpoint.size();
-		if ((msize < size && simplified.substr(0, msize) == mountpoint) || (msize == size && simplified == mountpoint))
+	if (mounts.count(simplified) != 0)
+		return false;
+	for (const auto &[mountpoint, existing_driver]: mounts)
+		if (*driver == *existing_driver)
 			return false;
-	}
 	mounts.emplace(simplified, driver);
 	return true;
 }

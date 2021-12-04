@@ -90,7 +90,6 @@ namespace ThornFAT {
 			DirEntry overflow[OVERFLOW_MAX];
 			size_t overflowIndex = 0;
 
-			int writeSuperblock(const Superblock &);
 			int readSuperblock(Superblock &);
 			// void error(const std::string &);
 

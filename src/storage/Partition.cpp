@@ -71,3 +71,7 @@ ssize_t Partition::write(const void *buffer, size_t size, size_t byte_offset) {
 // int Partition::clear() {
 // 	return parent->clear(offset, length);
 // }
+
+bool Partition::operator==(const Partition &other) const {
+	return this == &other || *parent == *other.parent;
+}

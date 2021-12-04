@@ -24,4 +24,6 @@ struct Partition {
 	ssize_t write(const void *buffer, size_t size, size_t byte_offset);
 
 	// int clear();
+
+	bool operator==(const Partition &) const;
 };

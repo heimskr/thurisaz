@@ -7,4 +7,5 @@ struct WhyDevice: StorageDevice {
 	ssize_t write(const void *buffer, size_t bytes, size_t byte_offset) override;
 	long size() const;
 	static size_t count();
+	bool operator==(const StorageDevice &) const override;
 };
