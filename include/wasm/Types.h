@@ -38,6 +38,7 @@ namespace Wasmc {
 			RelocationData() = default;
 
 		public:
+			/** Whether the value to relocate occurs in the data section. */
 			bool isData;
 			RelocationType type;
 			/** The index in the symbol table of the symbol to use for the relocation. */

@@ -183,9 +183,31 @@ namespace Thurisaz {
 
 			Wasmc::BinaryParser parser(data);
 			parser.parse();
+			// We start at PAGE_SIZE instead of 0 so that segfaults are more easily catchable.
 			const size_t code_offset = Paging::PAGE_SIZE;
 			const size_t data_offset = Paging::PAGE_SIZE + upalign(parser.getDataOffset(), Paging::PAGE_SIZE);
+			const size_t pages_needed = updiv(data_offset + parser.getDataLength(), Paging::PAGE_SIZE);
+			printf("Pages needed: %lu\n", pages_needed);
 			parser.applyRelocation(code_offset, data_offset);
+			auto &tables = context.kernel.tables;
+			void *start = tables.allocateFreePhysicalAddress(pages_needed);
+			if (!start)
+				Kernel::panicf("Couldn't allocate %lu pages", pages_needed);
+
+			printf("start[%ld]\n", start);
+
+			for (size_t i = 0, max = parser.rawCode.size(); i < max; ++i)
+				*((uint64_t *) ((char *) start + tables.pmmStart) + i) = parser.rawCode[i];
+
+			for (size_t i = 0, max = parser.rawData.size(); i < max; ++i)
+				*((uint64_t *) ((char *) start + tables.pmmStart + Paging::PAGE_SIZE) + i) = parser.rawData[i];
+
+			// Run the process
+
+			const size_t index = (uintptr_t) start / Paging::PAGE_SIZE;
+			for (size_t i = 0; i < pages_needed; ++i)
+				tables.mark(index + i, false);
+
 			return 0;
 		});
 

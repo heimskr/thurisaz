@@ -116,9 +116,6 @@ namespace Wasmc {
 
 	void BinaryParser::applyRelocation(size_t code_offset, size_t data_offset) {
 		std::vector<uint8_t> data_bytes;
-		for (Long data: rawData)
-			for (int i = 0; i < 8; ++i)
-				data_bytes.push_back((data >> (8 * i)) & 0xff);
 
 		// TODO!
 
@@ -126,12 +123,64 @@ namespace Wasmc {
 		printf("Relocation: %lu\nEnd: %lu\n", offsets.relocation, offsets.end);
 		printf("relocationData.size() == %lu\n", relocationData.size());
 
+		bool code_changed = false, data_changed = false;
+
 		for (const RelocationData &relocation: relocationData) {
+			if (relocation.symbolIndex < 0 || symbols.size() <= relocation.symbolIndex)
+				Kernel::panicf("Couldn't find symbol at index %ld\n", relocation.symbolIndex);
+
+			const SymbolTableEntry &symbol = symbols.at(relocation.symbolIndex);
+			long address = symbol.address;
+			if (symbol.type == SymbolEnum::Data)
+				address = address - offsets.data + data_offset;
+			else
+				address = address - offsets.code + code_offset;
+
 			if (relocation.isData) {
-				printf("Data: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbols.at(relocation.symbolIndex).label.c_str(), relocation.offset);
+				printf("Data: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbol.label.c_str(), relocation.offset);
+				if (!data_changed) {
+					for (Long data: rawData)
+						for (int i = 0; i < 8; ++i)
+							data_bytes.push_back((data >> (8 * i)) & 0xff);
+					data_changed = true;
+				}
+				switch (relocation.type) {
+					case RelocationType::Upper4:
+						*(uint32_t *) &data_bytes[relocation.sectionOffset] = address >> 32;
+						break;
+					case RelocationType::Lower4:
+						*(uint32_t *) &data_bytes[relocation.sectionOffset] = address & 0xffffffff;
+						break;
+					case RelocationType::Full:
+						*(uint64_t *) &data_bytes[relocation.sectionOffset] = address;
+					default:
+						Kernel::panicf("Invalid RelocationType: %d\n", relocation.type);
+				}
 			} else {
-				printf("Code: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbols.at(relocation.symbolIndex).label.c_str(), relocation.offset);
+				printf("Code: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbol.label.c_str(), relocation.offset);
+				if (relocation.type == RelocationType::Upper4)
+					address >>= 32;
+				else if (relocation.type == RelocationType::Lower4)
+					address &= 0xffffffff;
+				if (AnyImmediate *any_imm = dynamic_cast<AnyImmediate *>(code.at(relocation.sectionOffset / 8).get())) {
+					any_imm->immediate = address;
+					code_changed = true;
+				} else
+					Kernel::panicf("No immediate value in instruction at %ld\n",
+						relocation.sectionOffset + offsets.code);
 			}
+		}
+
+		if (code_changed) {
+			rawCode.clear();
+			for (const auto &instruction: code)
+				rawCode.push_back(instruction->encode());
+		}
+
+		if (data_changed) {
+			rawData.clear();
+			for (size_t i = 0, max = data_bytes.size(); i < max; i += 8)
+				rawData.push_back(*(uint64_t *) &data_bytes[i]);
 		}
 	}
 

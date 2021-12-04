@@ -6,12 +6,26 @@
 
 #include "fs/FS.h"
 
+namespace Paging {
+	class Tables;
+}
+
 struct Kernel {
 	static void __attribute__((noreturn)) panic(const std::string &);
 	static void __attribute__((noreturn)) panic(const char *);
 	static void __attribute__((noreturn)) panicf(const char *, ...);
 
 	std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
+	Paging::Tables &tables;
+
+	Kernel() = delete;
+	Kernel(const Kernel &) = delete;
+	Kernel(Kernel &&) = delete;
+
+	Kernel(Paging::Tables &tables_): tables(tables_) {}
+
+	Kernel & operator=(const Kernel &) = delete;
+	Kernel & operator=(Kernel &&) = delete;
 
 	bool getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out);
 	bool mount(const std::string &, std::shared_ptr<FS::Driver>);

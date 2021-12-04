@@ -152,6 +152,8 @@ extern "C" void kernel_main() {
 		long pmm_start = 0;
 		asm("$k3 -> %0" : "=r"(pmm_start));
 		Paging::Tables &wrapper_ref = *(Paging::Tables *) (tptr + pmm_start);
+		wrapper_ref.bitmap = (Paging::Bitmap *) ((char *) wrapper_ref.bitmap + pmm_start);
+		wrapper_ref.tables = (Paging::Table *) ((char *) wrapper_ref.tables + pmm_start);
 		Memory &memory = *(Memory *) (mptr + pmm_start);
 		global_memory = (Memory *) ((char *) global_memory + pmm_start);
 		memory.setBounds(memory.start + pmm_start, memory.high + pmm_start);
@@ -159,7 +161,7 @@ extern "C" void kernel_main() {
 		for (ctor_set *set = __ctors_start; set != __ctors_end; ++set)
 			set->ctor();
 
-		Kernel kernel;
+		Kernel kernel(wrapper_ref);
 
 		std::string line;
 		line.reserve(256);

@@ -1,7 +1,7 @@
 #pragma once
 
-#include <stddef.h>
-#include <stdint.h>
+#include <cstddef>
+#include <cstdint>
 
 #include "P0Wrapper.h"
 
@@ -27,9 +27,6 @@ namespace Paging {
 
 	class Tables {
 		private:
-			Table *tables;
-			Bitmap *bitmap;
-			size_t pageCount;
 			bool pmmReady = false;
 			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
@@ -37,6 +34,9 @@ namespace Paging {
 
 		public:
 			uintptr_t pmmStart;
+			Table *tables;
+			Bitmap *bitmap;
+			size_t pageCount;
 
 			Tables() = delete;
 			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):

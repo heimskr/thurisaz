@@ -72,12 +72,18 @@ namespace Paging {
 		volatile long negative_one = 0;
 		volatile long one = 1;
 		asm("$0 - 1 -> %0" : "=r"(negative_one));
-		for (size_t i = start; i < pageCount / (8 * sizeof(Bitmap)); ++i)
-			if (bitmap[i] != negative_one)
-				for (unsigned j = 0; j < 8 * sizeof(Bitmap); ++j) {
+		for (size_t i = start / (8 * sizeof(Bitmap)); i < pageCount / (8 * sizeof(Bitmap)); ++i) {
+			if (bitmap[i] != negative_one) {
+				unsigned j = 0;
+				// TODO: verify
+				const ssize_t diff = ssize_t(start) - i * (8 * sizeof(Bitmap));
+				if (0l < diff && diff < 64l)
+					j = diff;
+				for (; j < 8 * sizeof(Bitmap); ++j)
 					if ((bitmap[i] & (one << j)) == 0)
 						return i * 8 * sizeof(Bitmap) + j;
-				}
+			}
+		}
 		return -1;
 	}
 
@@ -92,7 +98,7 @@ namespace Paging {
 	bool Tables::isFree(size_t index) const {
 		volatile long one = 1;
 		// NB: Change the math here if Bitmap changes in size.
-		return (bitmap[index >> 6] & (one << (index & 63))) != 0;
+		return (bitmap[index / 64] & (one << (index & 63))) == 0;
 	}
 
 	void * Tables::allocateFreePhysicalAddress(size_t consecutive_count) {
@@ -109,9 +115,12 @@ namespace Paging {
 
 		// TODO: verify.
 		long index = 0;
-		for (;;) {
-			index = findFree(index);
-			size_t i = 1;
+		for (; index + consecutive_count <= pageCount;) {
+			const long new_index = findFree(index);
+			long i = 1;
+			if (new_index == -1)
+				goto nope;
+			index = new_index;
 			for (; i < consecutive_count; ++i)
 				if (!isFree(index + i))
 					goto nope; // sorry
@@ -120,8 +129,9 @@ namespace Paging {
 			return (void *) (index * PAGE_SIZE);
 			nope:
 			index += i;
-			continue;
 		}
+
+		return nullptr;
 	}
 
 	uintptr_t Tables::assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
