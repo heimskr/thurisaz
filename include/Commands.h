@@ -34,6 +34,7 @@ namespace Thurisaz {
 		constexpr static long SUCCESS = 0;
 		constexpr static long NOT_FOUND = -1;
 		constexpr static long BAD_ARGUMENTS = -2;
+		constexpr static long EXIT_SHELL = -3;
 
 		int minArgs; // -1 = no minimum
 		int maxArgs; // -1 = no maximum

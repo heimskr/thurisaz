@@ -1,5 +1,6 @@
 #include "Commands.h"
 #include "Kernel.h"
+#include "Paging.h"
 #include "Print.h"
 #include "util.h"
 #include "fs/tfat/ThornFAT.h"
@@ -181,6 +182,10 @@ namespace Thurisaz {
 			}
 
 			Wasmc::BinaryParser parser(data);
+			parser.parse();
+			const size_t code_offset = Paging::PAGE_SIZE;
+			const size_t data_offset = Paging::PAGE_SIZE + upalign(parser.getDataOffset(), Paging::PAGE_SIZE);
+			parser.applyRelocation(code_offset, data_offset);
 			return 0;
 		});
 
@@ -318,6 +323,10 @@ namespace Thurisaz {
 			strprint("Halted.\n");
 			asm("<halt>");
 			return 0;
+		});
+
+		commands.try_emplace("exit", 0, 0, [](Context &context, const std::vector<std::string> &pieces) -> long {
+			return Command::EXIT_SHELL;
 		});
 	}
 }

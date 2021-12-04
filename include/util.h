@@ -4,6 +4,9 @@
 #include <string>
 #include <vector>
 
+bool parseUlong(const std::string &str, uint64_t &out, int base = 10);
+bool parseLong(const std::string &str, int64_t &out, int base = 10);
+
 template <typename T>
 inline T upalign(T num, long alignment) {
 	return num + ((alignment - (num % alignment)) % alignment);
@@ -56,5 +59,30 @@ C<std::string> split(const std::string &str, const std::string &delimiter, bool 
 	return out;
 }
 
-bool parseUlong(const std::string &str, uint64_t &out, int base = 10);
-bool parseLong(const std::string &str, int64_t &out, int base = 10);
+template <typename T>
+static std::vector<uint64_t> getLongs(const T &str) {
+	if (str.empty())
+		return {0};
+
+	std::vector<uint64_t> out;
+	out.reserve(updiv(str.size(), 8ul));
+
+	uint8_t count = 0;
+	uint64_t next = 0;
+	int index = 0;
+	for (auto ch: str) {
+		next |= uint64_t(ch) << (8 * index++);
+		index = index == 8? 0 : index;
+
+		if (++count == 8) {
+			out.push_back(next);
+			next = 0;
+			count = 0;
+		}
+	}
+
+	if (count != 0)
+		out.push_back(next);
+
+	return out;
+}

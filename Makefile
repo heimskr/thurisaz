@@ -1,5 +1,5 @@
-EMIT        := clang++ -S -emit-llvm -Xclang -disable-O0-optnone -target mips64el-linux-gnu -std=c++20 -O0 -g -nostdlib \
-               -fno-builtin -fno-exceptions -frtti -Drestrict=__restrict__ \
+EMIT        := clang++ -S -emit-llvm -Xclang -disable-O0-optnone -target mips64el-linux-gnu -std=c++20 -O0 -g \
+               -nostdlib -fno-builtin -fno-exceptions -frtti -Drestrict=__restrict__ \
                -Iinclude -Imusl/arch/aarch64 -Imusl/arch/generic -Imusl/obj/src/internal -Imusl/src/include \
                -Imusl/src/internal -Imusl/obj/include -Imusl/include -Iinclude/lib -Iinclude/lib/libcxx
 SOURCES     := $(shell find src -name '*.cpp')

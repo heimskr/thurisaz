@@ -32,6 +32,8 @@ namespace Wasmc {
 			static AnyBase * parse(Long);
 
 			void parse();
+			/** Applies relocation to the code and data sections (updates rawCode and rawData). */
+			void applyRelocation(size_t code_offset, size_t data_offset);
 
 			decltype(debugData) copyDebugData() const;
 

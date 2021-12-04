@@ -205,7 +205,9 @@ extern "C" void kernel_main() {
 						const long status = Thurisaz::runCommand(commands, context, pieces);
 						if (status == Thurisaz::Command::NOT_FOUND)
 							strprint("Unknown command.\n");
-						if (status == 0)
+						else if (status == Thurisaz::Command::EXIT_SHELL)
+							return;
+						else if (status == 0)
 							strprint("\e[32m$\e[39;1m ");
 						else
 							strprint("\e[31m$\e[39;1m ");
@@ -250,12 +252,13 @@ extern "C" {
 
 	void __attribute__((naked)) int_pagefault() {
 		asm("63 -> $m0               \n\
-		     <prc $m0>               \n\
+		     <p \"PF \">             \n\
+		     <prd $e0>               \n\
 		     32 -> $m0               \n\
 		     <prc $m0>               \n\
-		     <prd $e0>               \n\
-		     <prc $m0>               \n\
 		     <prd $e1>               \n\
+		     <prc $m0>               \n\
+		     <prd $e2>               \n\
 		     10 -> $m0               \n\
 		     <prc $m0>               \n\
 		     $k5 == 1 -> $k6         \n\

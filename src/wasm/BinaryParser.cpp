@@ -1,9 +1,8 @@
 #include "Kernel.h"
+#include "Print.h"
 #include "util.h"
 #include "wasm/BinaryParser.h"
 #include "wasm/Instructions.h"
-// #include "wasm/Nodes.h"
-// #include "wasm/Options.h"
 
 namespace Wasmc {
 	BinaryParser::BinaryParser(const std::vector<Long> &raw_): raw(raw_) {}
@@ -55,6 +54,18 @@ namespace Wasmc {
 			return new AnyJ(opcode, rs, link, address, condition, flags);
 		}
 
+		strprint("R:\n");
+		for (const Opcode opc: RTYPES)
+			printf("- %u\n", opc);
+
+		strprint("I:\n");
+		for (const Opcode opc: ITYPES)
+			printf("- %u\n", opc);
+
+		strprint("J:\n");
+		for (const Opcode opc: JTYPES)
+			printf("- %u\n", opc);
+
 		Kernel::panicf("Invalid instruction (opcode 0x%x): 0x%016lx", opcode, instruction);
 	}
 
@@ -101,6 +112,27 @@ namespace Wasmc {
 
 		rawRelocation = slice(offsets.relocation / 8, offsets.end / 8);
 		relocationData = getRelocationData();
+	}
+
+	void BinaryParser::applyRelocation(size_t code_offset, size_t data_offset) {
+		std::vector<uint8_t> data_bytes;
+		for (Long data: rawData)
+			for (int i = 0; i < 8; ++i)
+				data_bytes.push_back((data >> (8 * i)) & 0xff);
+
+		// TODO!
+
+		printf("Code: %lu\nData: %lu\nSymbols: %lu\nDebug: %lu\n", offsets.code, offsets.data, offsets.symbolTable, offsets.debug);
+		printf("Relocation: %lu\nEnd: %lu\n", offsets.relocation, offsets.end);
+		printf("relocationData.size() == %lu\n", relocationData.size());
+
+		for (const RelocationData &relocation: relocationData) {
+			if (relocation.isData) {
+				printf("Data: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbols.at(relocation.symbolIndex).label.c_str(), relocation.offset);
+			} else {
+				printf("Code: sectionOffset[%ld], symbol[%s], offset[%ld]\n", relocation.sectionOffset, symbols.at(relocation.symbolIndex).label.c_str(), relocation.offset);
+			}
+		}
 	}
 
 	decltype(BinaryParser::debugData) BinaryParser::copyDebugData() const {
