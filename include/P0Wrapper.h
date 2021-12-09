@@ -2,29 +2,32 @@
 
 #include <cstdint>
 
-struct P0Wrapper {
-	uint64_t *entries;
+namespace Paging {
+	unsigned char p0Offset(void *);
+	unsigned char p1Offset(void *);
+	unsigned char p2Offset(void *);
+	unsigned char p3Offset(void *);
+	unsigned char p4Offset(void *);
+	unsigned char p5Offset(void *);
+	unsigned short pageOffset(void *);
 
-	P0Wrapper(void *entries_);
-	void set();
-	static unsigned char p0Offset(void *);
-	static unsigned char p1Offset(void *);
-	static unsigned char p2Offset(void *);
-	static unsigned char p3Offset(void *);
-	static unsigned char p4Offset(void *);
-	static unsigned char p5Offset(void *);
-	static unsigned short pageOffset(void *);
+	struct P0Wrapper {
+		uint64_t *entries;
 
-	static bool isPresent(uint64_t entry);
+		P0Wrapper(void *entries_);
+		void set();
 
-	uint64_t getP0E(void *) const;
-	bool getP1E(void *, uint64_t &);
-	bool getP2E(void *, uint64_t &);
-	bool getP3E(void *, uint64_t &);
-	bool getP4E(void *, uint64_t &);
-	bool getP5E(void *, uint64_t &);
-	bool hasPage(void *);
-};
+		static bool isPresent(uint64_t entry);
+
+		uint64_t getP0E(void *) const;
+		bool getP1E(void *, uint64_t &);
+		bool getP2E(void *, uint64_t &);
+		bool getP3E(void *, uint64_t &);
+		bool getP4E(void *, uint64_t &);
+		bool getP5E(void *, uint64_t &);
+		bool hasPage(void *);
+	};
+}
 
 inline void __attribute__((naked, always_inline)) savePaging() {
 	asm("%%page -> $k0");

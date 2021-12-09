@@ -34,14 +34,20 @@ namespace Paging {
 			bool pmmReady = false;
 			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
+			uintptr_t assign(Table *, uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
+			                 uint8_t index5, void *physical = nullptr, uint8_t extra_meta = 0);
 
 		public:
 			uintptr_t pmmStart;
+			/** This should be a physical address. */
 			Table *tables;
 			Bitmap *bitmap;
 			size_t pageCount;
 
 			Tables() = delete;
+			Tables(const Tables &) = default;
+			Tables(Tables &&) = default;
+
 			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):
 			wrapper(tables_), tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count) {
 				asm("[ 0] -> %0" : "=r"(codeStart));
@@ -54,15 +60,33 @@ namespace Paging {
 			/** Identity maps the first 256 pages. */
 			void bootstrap();
 			void initPMM();
+			Tables & setPMM(uintptr_t pmm_start, bool ready = true);
 
 			long findFree(size_t start = 0) const;
 			void mark(size_t index, bool used = true);
 			bool isFree(size_t index) const;
 			void * allocateFreePhysicalAddress(size_t consecutive_count = 1);
 
-			// For assigning addresses before the physical memory map is ready.
+			Tables &  setCodeStart(void *ptr) { codeStart  = ptr; return *this; }
+			Tables &  setDataStart(void *ptr) { dataStart  = ptr; return *this; }
+			Tables & setDebugStart(void *ptr) { debugStart = ptr; return *this; }
+			Tables & setStarts(void *code, void *data, void *debug = nullptr) {
+				codeStart = code;
+				dataStart = data;
+				if (debug)
+					debugStart = debug;
+				return *this;
+			}
+
+			/** Assigns addresses before the physical memory map is ready. */
 			uintptr_t assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 			                          uint8_t index5, void *physical = nullptr, uint8_t extra_meta = 0);
+
+			/** Assigns addresses once the physical memory map is ready. */
+			uintptr_t assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
+			                 uint8_t index5, void *physical = nullptr, uint8_t extra_meta = 0);
+
+			uintptr_t assign(void *virtual_, void *physical = nullptr, uint8_t extra_meta = 0);
 
 			Entry addr2entry5(void *, long code_offset = -1, long data_offset = -1) const;
 	};

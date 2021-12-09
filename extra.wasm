@@ -44,6 +44,7 @@ name: "Thurisaz Extra"
 	<halt>
 
 	@int_system.term
+	<p "(term)\n">
 	: int_system.end
 
 	@int_system.end

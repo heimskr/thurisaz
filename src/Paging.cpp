@@ -59,12 +59,17 @@ namespace Paging {
 		for (uintptr_t i = 0; i < memsize; i += PAGE_SIZE) {
 			void *virtual_address = (char *) pmmStart + i;
 			void *physical = (void *) i;
-			assignBeforePMM(wrapper.p0Offset(virtual_address), wrapper.p1Offset(virtual_address),
-				wrapper.p2Offset(virtual_address), wrapper.p3Offset(virtual_address), wrapper.p4Offset(virtual_address),
-				wrapper.p5Offset(virtual_address), physical);
+			assignBeforePMM(p0Offset(virtual_address), p1Offset(virtual_address), p2Offset(virtual_address),
+				            p3Offset(virtual_address), p4Offset(virtual_address), p5Offset(virtual_address), physical);
 		}
 		pmmReady = true;
 		strprint("Finished mapping physical memory.\n");
+	}
+
+	Tables & Tables::setPMM(uintptr_t pmm_start, bool ready) {
+		pmmStart = pmm_start;
+		pmmReady = ready;
+		return *this;
 	}
 
 	long Tables::findFree(size_t start) const {
@@ -135,14 +140,30 @@ namespace Paging {
 
 	uintptr_t Tables::assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                                  uint8_t index5, void *physical, uint8_t extra_meta) {
-		if (!(tables[0][index0] & PRESENT)) {
+		return assign(tables, index0, index1, index2, index3, index4, index5, physical, extra_meta);
+	}
+
+	uintptr_t Tables::assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
+	                         uint8_t index5, void *physical, uint8_t extra_meta) {
+		return assign((Table *) ((char *) tables + pmmStart), index0, index1, index2, index3, index4, index5, physical,
+		              extra_meta);
+	}
+
+	uintptr_t Tables::assign(void *virtual_, void *physical, uint8_t extra_meta) {
+		return assign(p0Offset(virtual_), p1Offset(virtual_), p2Offset(virtual_),
+		              p3Offset(virtual_), p4Offset(virtual_), p5Offset(virtual_), physical, extra_meta);
+	}
+
+	uintptr_t Tables::assign(Table *usable, uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3,
+	                         uint8_t index4, uint8_t index5, void *physical, uint8_t extra_meta) {
+		if (!(usable[0][index0] & PRESENT)) {
 			// Allocate a new page for the P1 table if the P0 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
-				tables[0][index0] = ADDR2ENTRY04(free_addr);
+				usable[0][index0] = ADDR2ENTRY04(free_addr);
 			else NOFREE();
 		}
 
-		Entry *p1 = (Entry *) (tables[0][index0] & ~MASK04);
+		Entry *p1 = (Entry *) (usable[0][index0] & ~MASK04);
 		if (!(p1[index1] & PRESENT)) {
 			// Allocate a new page for the P2 table if the P1 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -192,7 +213,7 @@ namespace Paging {
 	}
 
 	Entry Tables::addr2entry5(void *addr, long code_offset, long data_offset) const {
-		const uintptr_t low = (uintptr_t) addr - (uintptr_t) addr % PAGE_SIZE, high = low + PAGE_SIZE;
+		const uintptr_t low = uintptr_t(addr) - uintptr_t(addr) % PAGE_SIZE, high = low + PAGE_SIZE;
 		const uintptr_t code = code_offset < 0? uintptr_t(codeStart) : uintptr_t(code_offset);
 		const uintptr_t data = data_offset < 0? uintptr_t(dataStart) : uintptr_t(data_offset);
 
@@ -205,7 +226,7 @@ namespace Paging {
 		// I'm aware that it's possible for a page to be both executable and writable if the code-data boundary
 		// falls within the page. There's nothing I can really do about it.
 
-		return (((Entry) addr) & ~MASK5) | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
+		return (Entry(addr) & ~MASK5) | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
 	}
 }
 

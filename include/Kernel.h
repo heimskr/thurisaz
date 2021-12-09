@@ -12,9 +12,13 @@ struct ProcessData {
 	/** Points to the address returned by new; the actual starting address of the tables will be upaligned to 2048. */
 	Paging::Table *tableBase;
 	size_t tableCount;
+	Paging::Tables wrapper;
 
-	ProcessData(long pid_, Paging::Table *table_base, size_t table_count):
-		pid(pid_), tableBase(table_base), tableCount(table_count) {}
+	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, const Paging::Tables &wrapper_):
+		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(wrapper_) {}
+
+	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, Paging::Tables &&wrapper_):
+		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(std::move(wrapper_)) {}
 };
 
 struct Kernel;
