@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "Commands.h"
+#include "Interrupts.h"
 #include "Kernel.h"
 #include "mal.h"
 #include "P0Wrapper.h"
@@ -29,15 +30,6 @@ struct ctor_set {
 extern ctor_set *__ctors_start;
 extern ctor_set *__ctors_end;
 
-extern "C" {
-	void int_system();
-	void int_timer();
-	void int_pagefault();
-	void int_inexec();
-	void int_bwrite();
-	void int_keybrd();
-}
-
 struct NoisyDestructor {
 	const char *string;
 	NoisyDestructor(const char *string_): string(string_) {}
@@ -47,7 +39,18 @@ struct NoisyDestructor {
 long keybrd_index = 0;
 unsigned long keybrd_queue[16] = {0};
 
-void (*table[])() = {int_system, 0, int_timer, 0, int_pagefault, int_inexec, int_bwrite, int_keybrd};
+typedef void (*InterruptHandler)();
+
+InterruptHandler table[] = {
+	0,
+	int_system,
+	int_timer,
+	0,
+	int_pagefault,
+	int_inexec,
+	int_bwrite,
+	int_keybrd
+};
 
 extern "C" void map_loop(const std::map<std::string, int> &map) {
 	for (const auto &[key, value]: map)
@@ -162,6 +165,7 @@ extern "C" void kernel_main() {
 			set->ctor();
 
 		Kernel kernel(wrapper_ref);
+		printf("kernel[%ld]\n", global_kernel);
 
 		std::string line;
 		line.reserve(256);
@@ -212,7 +216,7 @@ extern "C" void kernel_main() {
 							strprint("Unknown command.\n");
 						else if (status == Thurisaz::Command::EXIT_SHELL)
 							return;
-						else if (status == 0)
+						if (status == 0)
 							strprint("\e[32m$\e[39;1m ");
 						else
 							strprint("\e[31m$\e[39;1m ");
@@ -231,12 +235,6 @@ extern "C" void kernel_main() {
 }
 
 extern "C" {
-	void __attribute__((naked)) int_system() {
-		asm("<p \"System: \"> \n\
-		     <prd $a0> \n\
-		     <halt>");
-	}
-
 	void __attribute__((naked)) int_inexec() {
 		asm("<p \"IE\\n\">");
 		asm("<halt>");

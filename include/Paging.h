@@ -5,9 +5,12 @@
 
 #include "P0Wrapper.h"
 
-#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~MASK04) | PRESENT)
+#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~Paging::MASK04) | Paging::PRESENT)
 
 namespace Paging {
+	using Bitmap = uint64_t;
+	using Entry = uint64_t;
+
 	constexpr uint64_t PRESENT    = 1;
 	constexpr uint64_t WRITABLE   = 2;
 	constexpr uint64_t EXECUTABLE = 4;
@@ -16,23 +19,21 @@ namespace Paging {
 	constexpr uint64_t MODIFIED   = 32;
 
 	constexpr uint64_t PAGE_SIZE = 65536;
+	constexpr uint64_t TABLE_ENTRIES = 256;
+	constexpr uint64_t TABLE_SIZE = TABLE_ENTRIES * sizeof(Entry);
 	constexpr uint64_t MASK04 = 0x7ff; // Equal to eleven ones in binary.
 	constexpr uint64_t MASK5 = 0xffff; // Equal to sixteen ones in binary.
 	constexpr uint64_t NOT_ASSIGNED = 666; // Returned by assign functions when they don't need to assign a page.
 
 	size_t getTableCount(size_t page_count);
 
-	using Bitmap = uint64_t;
-	using Entry = uint64_t;
-
-	typedef Entry Table[256];
+	typedef Entry Table[TABLE_ENTRIES];
 
 	class Tables {
 		private:
 			bool pmmReady = false;
 			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
-			Entry addr2entry5(void *) const;
 
 		public:
 			uintptr_t pmmStart;
@@ -62,5 +63,7 @@ namespace Paging {
 			// For assigning addresses before the physical memory map is ready.
 			uintptr_t assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 			                          uint8_t index5, void *physical = nullptr, uint8_t extra_meta = 0);
+
+			Entry addr2entry5(void *, long code_offset = -1, long data_offset = -1) const;
 	};
 }

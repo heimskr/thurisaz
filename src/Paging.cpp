@@ -9,17 +9,17 @@
 
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
-		size_t divisor = 256;
+		size_t divisor = TABLE_ENTRIES;
 		size_t sum = updiv(page_count, divisor);
 		for (unsigned char i = 0; i < 5; ++i)
-			sum += updiv(page_count, divisor *= 256);
+			sum += updiv(page_count, divisor *= TABLE_ENTRIES);
 		return sum;
 	}
 
 	void Tables::reset(bool zero_out_tables) {
 		if (zero_out_tables) {
-			printf("Resetting tables (%lu bytes).\n", pageCount * 2048);
-			asm("memset %0 x $0 -> %1" :: "r"(pageCount * 2048), "r"(tables));
+			printf("Resetting tables (%lu bytes).\n", pageCount * TABLE_SIZE);
+			asm("memset %0 x $0 -> %1" :: "r"(pageCount * TABLE_SIZE), "r"(tables));
 		}
 		strprint("Resetting bitmap.\n");
 		asm("memset %0 x $0 -> %1" :: "r"(updiv(pageCount, 8)), "r"(bitmap));
@@ -191,11 +191,12 @@ namespace Paging {
 		return NOT_ASSIGNED;
 	}
 
-	Entry Tables::addr2entry5(void *addr) const {
+	Entry Tables::addr2entry5(void *addr, long code_offset, long data_offset) const {
 		const uintptr_t low = (uintptr_t) addr - (uintptr_t) addr % PAGE_SIZE, high = low + PAGE_SIZE;
-		const uintptr_t code = (uintptr_t) codeStart, data = (uintptr_t) dataStart;
+		const uintptr_t code = code_offset < 0? uintptr_t(codeStart) : uintptr_t(code_offset);
+		const uintptr_t data = data_offset < 0? uintptr_t(dataStart) : uintptr_t(data_offset);
 
-		bool executable = codeStart <= addr && high < uintptr_t(dataStart);
+		bool executable = code <= uintptr_t(addr) && high < data;
 		if (!executable)
 			executable = (low <= code && code < high) || (code <= low && low < data);
 

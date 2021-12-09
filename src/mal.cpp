@@ -1,3 +1,4 @@
+#include "Kernel.h"
 #include "mal.h"
 #include "memset.h"
 #include "printf.h"
@@ -228,9 +229,16 @@ extern "C" int posix_memalign(void **memptr, size_t alignment, size_t size) {
 	return 0;
 }
 
+static void * checked_malloc(size_t size) {
+	void *out = malloc(size);
+	if (!out)
+		Kernel::panicf("Can't allocate %lu bytes: out of memory", size);
+	return out;
+}
+
 #ifdef __clang__
-void * operator new(size_t size)   { return malloc(size); }
-void * operator new[](size_t size) { return malloc(size); }
+void * operator new(size_t size)   { return checked_malloc(size); }
+void * operator new[](size_t size) { return checked_malloc(size); }
 void * operator new(size_t, void *ptr)   { return ptr; }
 void * operator new[](size_t, void *ptr) { return ptr; }
 void operator delete(void *ptr)   noexcept { free(ptr); }

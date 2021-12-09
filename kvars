@@ -1,0 +1,10 @@
+In main.cpp, kvars are used for different purposes than described here, but that usage is only temporary.
+By the time the shell starts, all kvars are free for use as described below.
+
+$k0: Stores process ID
+$k1: Stores kernel stack pointer
+$k2: Stores process stack pointer
+$k3: Stores result of svpg
+
+$ke: Temporary values
+$kf: Temporary values

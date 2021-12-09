@@ -32,6 +32,25 @@ name: "Thurisaz Extra"
 
 %code
 
+@int_system
+	$sp -> $k2
+	$k1 -> $sp
+
+	$a0 == 0 -> $m0
+	: int_system.term if $m0
+	<p "Invalid syscall: ">
+	<prd $a0>
+	<prc '\n'>
+	<halt>
+
+	@int_system.term
+	: int_system.end
+
+	@int_system.end
+	$k2 -> $sp
+	$e0 += 8
+	: $e0
+
 @__cxa_atexit
 	// $m1 = __atexit_count;
 	&__atexit_count -> $m3
@@ -186,3 +205,10 @@ name: "Thurisaz Extra"
 	&__abort_message -> $a0
 	:: strprint
 	<halt>
+
+@llvm.umul.with.overflow.i64
+	$a0 * $a1 /u
+	$lo -> $r0
+	$hi == 0 -> $r1
+	!$r1 -> $r1
+	: $rt

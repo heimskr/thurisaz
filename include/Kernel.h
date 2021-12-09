@@ -4,11 +4,22 @@
 #include <memory>
 #include <string>
 
+#include "Paging.h"
 #include "fs/FS.h"
 
-namespace Paging {
-	class Tables;
-}
+struct ProcessData {
+	long pid;
+	/** Points to the address returned by new; the actual starting address of the tables will be upaligned to 2048. */
+	Paging::Table *tableBase;
+	size_t tableCount;
+
+	ProcessData(long pid_, Paging::Table *table_base, size_t table_count):
+		pid(pid_), tableBase(table_base), tableCount(table_count) {}
+};
+
+struct Kernel;
+
+extern Kernel *global_kernel;
 
 struct Kernel {
 	static void __attribute__((noreturn)) panic(const std::string &);
@@ -16,13 +27,16 @@ struct Kernel {
 	static void __attribute__((noreturn)) panicf(const char *, ...);
 
 	std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
+	std::map<long, ProcessData> processes;
 	Paging::Tables &tables;
 
 	Kernel() = delete;
 	Kernel(const Kernel &) = delete;
 	Kernel(Kernel &&) = delete;
 
-	Kernel(Paging::Tables &tables_): tables(tables_) {}
+	Kernel(Paging::Tables &tables_): tables(tables_) {
+		global_kernel = this;
+	}
 
 	Kernel & operator=(const Kernel &) = delete;
 	Kernel & operator=(Kernel &&) = delete;
@@ -30,6 +44,7 @@ struct Kernel {
 	bool getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out);
 	bool mount(const std::string &, std::shared_ptr<FS::Driver>);
 	bool unmount(const std::string &);
+	long getPID() const;
 
 	int rename(const char *path, const char *newpath);
 	int release(const char *path);

@@ -4,6 +4,8 @@
 #include "Kernel.h"
 #include "Print.h"
 
+Kernel *global_kernel = nullptr;
+
 void __attribute__((noreturn)) Kernel::panic(const std::string &message) {
 	panic(message.c_str());
 }
@@ -75,6 +77,12 @@ bool Kernel::unmount(const std::string &path) {
 	}
 
 	return false;
+}
+
+long Kernel::getPID() const {
+	long out;
+	for (out = 0; processes.count(out) != 0 && 0 <= out; ++out);
+	return out;
 }
 
 int Kernel::rename(const char *path, const char *newpath) {
