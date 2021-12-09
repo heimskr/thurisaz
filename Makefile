@@ -31,7 +31,8 @@ $(OUTPUT): $(WASM)
 	wasmc $< $@
 
 $(WASM): $(OPTIMIZED)
-	ll2w $< -main > $@
+	ll2w $< -main > "tmp.$@"
+	mv "tmp.$@" $@
 
 $(UNOPTIMIZED): $(LLVMIR)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)

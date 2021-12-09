@@ -55,7 +55,7 @@ namespace Paging {
 		uintptr_t memsize;
 		asm("? mem -> %0" : "=r"(memsize));
 		asm("$0 - %1 -> %0" : "=r"(pmmStart) : "r"(memsize));
-		strprint("Mapping physical memory...\n");
+		printf("Mapping physical memory at 0x%lx...\n", pmmStart);
 		for (uintptr_t i = 0; i < memsize; i += PAGE_SIZE) {
 			void *virtual_address = (char *) pmmStart + i;
 			void *physical = (void *) i;
@@ -140,22 +140,25 @@ namespace Paging {
 
 	uintptr_t Tables::assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                                  uint8_t index5, void *physical, uint8_t extra_meta) {
-		return assign(tables, index0, index1, index2, index3, index4, index5, physical, extra_meta);
+		return assign(tables, 0, index0, index1, index2, index3, index4, index5, physical, extra_meta);
 	}
 
 	uintptr_t Tables::assign(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                         uint8_t index5, void *physical, uint8_t extra_meta) {
-		return assign((Table *) ((char *) tables + pmmStart), index0, index1, index2, index3, index4, index5, physical,
-		              extra_meta);
+		return assign((Table *) ((char *) tables + pmmStart), pmmStart, index0, index1, index2, index3, index4, index5,
+		              physical, extra_meta);
 	}
 
 	uintptr_t Tables::assign(void *virtual_, void *physical, uint8_t extra_meta) {
-		return assign(p0Offset(virtual_), p1Offset(virtual_), p2Offset(virtual_),
+		auto out = assign(p0Offset(virtual_), p1Offset(virtual_), p2Offset(virtual_),
 		              p3Offset(virtual_), p4Offset(virtual_), p5Offset(virtual_), physical, extra_meta);
+		printf("Assigned 0x%lx -> 0x%lx (%ld -> %ld): 0x%lx (%ld)\n",
+			virtual_, physical, virtual_, physical, out, out);
+		return out;
 	}
 
-	uintptr_t Tables::assign(Table *usable, uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3,
-	                         uint8_t index4, uint8_t index5, void *physical, uint8_t extra_meta) {
+	uintptr_t Tables::assign(Table *usable, ptrdiff_t offset, uint8_t index0, uint8_t index1, uint8_t index2,
+	                         uint8_t index3, uint8_t index4, uint8_t index5, void *physical, uint8_t extra_meta) {
 		if (!(usable[0][index0] & PRESENT)) {
 			// Allocate a new page for the P1 table if the P0 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -163,7 +166,7 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p1 = (Entry *) (usable[0][index0] & ~MASK04);
+		Entry *p1 = (Entry *) ((char *) (usable[0][index0] & ~MASK04) + offset);
 		if (!(p1[index1] & PRESENT)) {
 			// Allocate a new page for the P2 table if the P1 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -171,7 +174,7 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p2 = (Entry *) (p1[index1] & ~MASK04);
+		Entry *p2 = (Entry *) ((char *) (p1[index1] & ~MASK04) + offset);
 		if (!(p2[index2] & PRESENT)) {
 			// Allocate a new page for the P3 table if the P2 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -179,7 +182,7 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p3 = (Entry *) (p2[index2] & ~MASK04);
+		Entry *p3 = (Entry *) ((char *) (p2[index2] & ~MASK04) + offset);
 		if (!(p3[index3] & PRESENT)) {
 			// Allocate a new page for the P4 table if the P3 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -187,7 +190,7 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p4 = (Entry *) (p3[index3] & ~MASK04);
+		Entry *p4 = (Entry *) ((char *) (p3[index3] & ~MASK04) + offset);
 		if (!(p4[index4] & PRESENT)) {
 			// Allocate a new page for the P5 table if the P4 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress())
@@ -195,13 +198,13 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p5 = (Entry *) (p4[index4] & ~MASK04);
+		Entry *p5 = (Entry *) ((char *) (p4[index4] & ~MASK04) + offset);
 		if (!(p5[index5] & PRESENT)) {
 			// Allocate a new page if the P5 entry doesn't have the present bit set (or, optionally, use a provided
 			// physical address).
 
 			if (physical)
-				return (p5[index5] = addr2entry5(physical)) & ~MASK5;
+				return (p5[index5] = addr2entry5(physical) | extra_meta) & ~MASK5;
 
 			if (void *free_addr = allocateFreePhysicalAddress())
 				return (p5[index5] = addr2entry5(free_addr) | extra_meta) & ~MASK5;

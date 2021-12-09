@@ -191,10 +191,12 @@ namespace Thurisaz {
 
 			parser->parse();
 			const size_t code_offset = Paging::PAGE_SIZE;
+			const size_t code_length = parser->getCodeLength();
+			const size_t data_length = parser->getDataLength();
 			const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PAGE_SIZE);
-			const size_t pages_needed = updiv(data_offset + parser->getDataLength(), Paging::PAGE_SIZE);
+			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE);
 			// We start here instead of 0 so that segfaults are more easily catchable.
-			ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
+			const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
 			printf("Pages needed: %lu\n", pages_needed);
 			parser->applyRelocation(code_offset, data_offset);
 			auto &tables = context.kernel.tables;
@@ -202,12 +204,15 @@ namespace Thurisaz {
 			if (!start)
 				Kernel::panicf("Couldn't allocate %lu pages", pages_needed);
 
-			for (size_t i = 0, max = parser->rawCode.size(); i < max; ++i)
-				*((uint64_t *) ((char *) start + tables.pmmStart) + i) = parser->rawCode[i];
+			for (size_t i = 0, max = parser->rawCode.size(); i < max; ++i) {
+				auto *addr = (uint64_t *) ((char *) start + code_offset) + i;
+				printf("[[%ld : 0x%lx]] -> 0x%016lx\n", addr, addr, parser->rawCode[i]);
+				*((uint64_t *) ((char *) start + tables.pmmStart + code_offset) + i) = parser->rawCode[i];
+			}
 
 			// TODO: verify
 			for (size_t i = 0, max = parser->rawData.size(); i < max; ++i)
-				*((uint64_t *) ((char *) start + tables.pmmStart + data_offset - code_offset) + i) = parser->rawData[i];
+				*((uint64_t *) ((char *) start + tables.pmmStart + data_offset) + i) = parser->rawData[i];
 
 			parser.reset();
 
@@ -224,21 +229,26 @@ namespace Thurisaz {
 
 			void *translated;
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(table_array));
-			printf("Table array at %ld (0x%lx)\n", translated, translated);
+			printf("Table array at physical address %ld (0x%lx), virtual address %ld (0x%lx)\n",
+				translated, translated, table_array, table_array);
 
 			// TODO!: give some space for the stack
 
-			const uintptr_t code_end = upalign(code_offset + parser->getCodeLength(), Paging::PAGE_SIZE);
-			const uintptr_t data_end = upalign(data_offset + parser->getDataLength(), Paging::PAGE_SIZE);
+			const uintptr_t code_end = upalign(code_offset + code_length, Paging::PAGE_SIZE);
+			const uintptr_t data_end = upalign(data_offset + data_length, Paging::PAGE_SIZE);
 
-			Paging::Tables wrapper(table_array, context.kernel.tables.bitmap, context.kernel.tables.pageCount);
+			Paging::Tables wrapper(translated, context.kernel.tables.bitmap, context.kernel.tables.pageCount);
 			wrapper.setStarts((void *) code_offset, (void *) data_offset).setPMM(context.kernel.tables.pmmStart);
 
-			for (uintptr_t physical = code_offset; physical < code_end; ++physical)
-				wrapper.assign((void *) (virtual_start + physical), (void *) physical);
+			for (uintptr_t physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE) {
+				printf("%ld <= %ld < %ld\n", code_offset, physical, code_end);
+				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
+			}
 
-			for (uintptr_t physical = data_offset; physical < data_end; ++physical)
-				wrapper.assign((void *) (virtual_start + physical), (void *) physical);
+			for (uintptr_t physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE) {
+				printf("%ld <= %ld < %ld\n", data_offset, physical, data_end);
+				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
+			}
 
 			long pid = context.kernel.getPID();
 			if (pid < 0)
@@ -248,13 +258,14 @@ namespace Thurisaz {
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(p0));
 
 			printf("pid[%ld]\n", pid);
+			printf("virtual_start[%ld : 0x%lx], code_offset[%ld]\n", virtual_start, virtual_start, code_offset);
 
 			asm("%0 -> $k0" :: "r"(pid));
-			asm("%0 -> $ke" :: "r"(code_offset));
+			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
+			asm("<print $ke>");
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
 			asm("%%setpt %0" :: "r"(translated));
-			// asm("<rest>");
 			asm(": $rt");
 
 
@@ -353,6 +364,13 @@ namespace Thurisaz {
 
 		commands.try_emplace("init", 0, 0, [&](Context &context, const std::vector<std::string> &) -> long {
 			return runCommand(commands, context, {"mount", "0", "/"});
+		});
+
+		commands.try_emplace("go", 0, 0, [&](Context &context, const std::vector<std::string> &) -> long {
+			int status = runCommand(commands, context, {"mount", "0", "/"});
+			if (status != 0)
+				return status;
+			return runCommand(commands, context, {"run", "hw.why"});
 		});
 
 		commands.try_emplace("clear", 0, 0, [](Context &, const std::vector<std::string> &) -> long {

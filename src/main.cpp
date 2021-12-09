@@ -173,12 +173,12 @@ extern "C" void kernel_main() {
 		Thurisaz::Context context(kernel);
 		asm("<io devcount> \n $r0 -> %0" : "=r"(context.driveCount));
 
-		([] {
-			std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
-			map.try_emplace("what", -10);
-			printf("Map size: %lu\n", map.size());
-			map_loop(map);
-		})();
+		// ([] {
+		// 	std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
+		// 	map.try_emplace("what", -10);
+		// 	printf("Map size: %lu\n", map.size());
+		// 	map_loop(map);
+		// })();
 
 		strprint("\e[32m$\e[39;1m ");
 
@@ -264,11 +264,6 @@ extern "C" {
 		     <prd $e2>               \n\
 		     10 -> $m0               \n\
 		     <prc $m0>               \n\
-		     $k5 == 1 -> $k6         \n\
-		     : pagefault_nope /* if $k6 */ \n\
-		     1 -> $k5                \n\
-		     :: stacktrace           \n\
-		     @pagefault_nope         \n\
 		     <halt>");
 	}
 
