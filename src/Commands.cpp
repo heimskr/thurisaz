@@ -197,20 +197,16 @@ namespace Thurisaz {
 			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE);
 			// We start here instead of 0 so that segfaults are more easily catchable.
 			const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
-			printf("Pages needed: %lu\n", pages_needed);
-			parser->applyRelocation(code_offset, data_offset);
 			auto &tables = context.kernel.tables;
 			void *start = tables.allocateFreePhysicalAddress(pages_needed);
 			if (!start)
 				Kernel::panicf("Couldn't allocate %lu pages", pages_needed);
 
-			for (size_t i = 0, max = parser->rawCode.size(); i < max; ++i) {
-				auto *addr = (uint64_t *) ((char *) start + code_offset) + i;
-				printf("[[%ld : 0x%lx]] -> 0x%016lx\n", addr, addr, parser->rawCode[i]);
-				*((uint64_t *) ((char *) start + tables.pmmStart + code_offset) + i) = parser->rawCode[i];
-			}
+			parser->applyRelocation(virtual_start + code_offset, virtual_start + data_offset);
 
-			// TODO: verify
+			for (size_t i = 0, max = parser->rawCode.size(); i < max; ++i)
+				*((uint64_t *) ((char *) start + tables.pmmStart + code_offset) + i) = parser->rawCode[i];
+
 			for (size_t i = 0, max = parser->rawData.size(); i < max; ++i)
 				*((uint64_t *) ((char *) start + tables.pmmStart + data_offset) + i) = parser->rawData[i];
 
@@ -223,14 +219,11 @@ namespace Thurisaz {
 			if (!table_base)
 				Kernel::panicf("Couldn't allocate %lu bytes", table_bytes + Paging::TABLE_SIZE);
 			table_array = (Paging::Table *) upalign(uintptr_t(table_base), Paging::TABLE_SIZE);
-			printf("Allocated %lu bytes at %ld.\n", table_bytes + Paging::TABLE_SIZE, table_base);
 			asm("memset %0 x $0 -> %1" :: "r"(table_bytes), "r"(table_array));
 			Paging::Entry *p0 = table_array[0];
 
 			void *translated;
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(table_array));
-			printf("Table array at physical address %ld (0x%lx), virtual address %ld (0x%lx)\n",
-				translated, translated, table_array, table_array);
 
 			// TODO!: give some space for the stack
 
@@ -240,15 +233,11 @@ namespace Thurisaz {
 			Paging::Tables wrapper(translated, context.kernel.tables.bitmap, context.kernel.tables.pageCount);
 			wrapper.setStarts((void *) code_offset, (void *) data_offset).setPMM(context.kernel.tables.pmmStart);
 
-			for (uintptr_t physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE) {
-				printf("%ld <= %ld < %ld\n", code_offset, physical, code_end);
+			for (uintptr_t physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
 				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
-			}
 
-			for (uintptr_t physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE) {
-				printf("%ld <= %ld < %ld\n", data_offset, physical, data_end);
+			for (uintptr_t physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
 				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
-			}
 
 			long pid = context.kernel.getPID();
 			if (pid < 0)
@@ -257,16 +246,12 @@ namespace Thurisaz {
 			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper));
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(p0));
 
-			printf("pid[%ld]\n", pid);
-			printf("virtual_start[%ld : 0x%lx], code_offset[%ld]\n", virtual_start, virtual_start, code_offset);
-
 			asm("%0 -> $k0" :: "r"(pid));
 			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
 			asm("<print $ke>");
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
-			asm("%%setpt %0" :: "r"(translated));
-			asm(": $rt");
+			asm(": %%setpt %0 $rt" :: "r"(translated));
 
 
 

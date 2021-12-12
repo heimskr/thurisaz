@@ -125,9 +125,9 @@ namespace Wasmc {
 			const SymbolTableEntry &symbol = symbols.at(relocation.symbolIndex);
 			long address = symbol.address;
 			if (symbol.type == SymbolEnum::Data)
-				address = address - offsets.data + data_offset;
+				address = address + data_offset;
 			else
-				address = address - offsets.code + code_offset;
+				address = address + code_offset;
 
 			if (relocation.isData) {
 				if (!data_changed) {
