@@ -195,7 +195,7 @@ namespace Thurisaz {
 			const size_t data_length = parser->getDataLength();
 			const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PAGE_SIZE);
 			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE)
-				+ Kernel::PROCESS_STACK_PAGES;
+				+ Kernel::PROCESS_STACK_PAGES + Kernel::PROCESS_DATA_PAGES;
 			// We start here instead of 0 so that segfaults are more easily catchable.
 			const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
 			auto &tables = context.kernel.tables;
@@ -243,22 +243,29 @@ namespace Thurisaz {
 
 			uintptr_t high;
 			asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PAGE_SIZE));
+			uintptr_t global_start = virtual_start + data_end;
 
 			for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
 				wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical);
+
+			for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PAGE_SIZE)
+				wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical);
 
 			long pid = context.kernel.getPID();
 			if (pid < 0)
 				Kernel::panicf("Invalid pid: %ld", pid);
 
+
 			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper), start,
 				pages_needed);
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(p0));
+
 
 			asm("%0 -> $k0" :: "r"(pid));
 			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
 			asm("%0 -> $k4" :: "r"(context.kernel.tables.p0.entries));
 			asm("$sp -> $k1");
+			asm("%0 -> $g" :: "r"(global_start));
 			asm("$ke -> $rt");
 			asm("0xfffffff8 -> $sp");
 			asm("lui: 0xffffffff -> $sp");
@@ -355,7 +362,7 @@ namespace Thurisaz {
 			int status = runCommand(commands, context, {"mount", "0", "/"});
 			if (status != 0)
 				return status;
-			return runCommand(commands, context, {"run", "hw.why"});
+			return runCommand(commands, context, {"run", "sieve.why"});
 		});
 
 		commands.try_emplace("clear", 0, 0, [](Context &, const std::vector<std::string> &) -> long {

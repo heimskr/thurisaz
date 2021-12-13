@@ -48,12 +48,14 @@ class Kernel {
 		static void __attribute__((noreturn)) panicf(const char *, ...);
 
 		static constexpr size_t PROCESS_STACK_PAGES = 16; // 1 MiB
+		static constexpr size_t PROCESS_DATA_PAGES = 16; // 1 MiB
 
 		std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
 		std::map<long, ProcessData> processes;
 		Paging::Tables &tables;
 		Thurisaz::Context context = {*this};
 		std::map<std::string, Thurisaz::Command> commands;
+		uintptr_t globalArea;
 
 		Kernel() = delete;
 		Kernel(const Kernel &) = delete;
@@ -63,6 +65,7 @@ class Kernel {
 			global_kernel = this;
 			Thurisaz::addCommands(commands);
 			line.reserve(256);
+			asm("$g -> %0" : "=r"(globalArea));
 		}
 
 		Kernel & operator=(const Kernel &) = delete;
