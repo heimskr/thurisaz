@@ -230,7 +230,8 @@ namespace Thurisaz {
 			const uintptr_t code_end = upalign(code_offset + code_length, Paging::PAGE_SIZE);
 			const uintptr_t data_end = upalign(data_offset + data_length, Paging::PAGE_SIZE);
 
-			Paging::Tables wrapper(translated, context.kernel.tables.bitmap, context.kernel.tables.pageCount);
+			Paging::Tables wrapper((Paging::Table *) translated, context.kernel.tables.bitmap,
+				context.kernel.tables.pageCount);
 			wrapper.setStarts((void *) code_offset, (void *) data_offset).setPMM(context.kernel.tables.pmmStart);
 
 			for (uintptr_t physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
@@ -248,7 +249,7 @@ namespace Thurisaz {
 
 			asm("%0 -> $k0" :: "r"(pid));
 			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
-			asm("<print $ke>");
+			asm("%0 -> $k4" :: "r"(wrapper.p0.entries));
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
 			asm(": %%setpt %0 $rt" :: "r"(translated));

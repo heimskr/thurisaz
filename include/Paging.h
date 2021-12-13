@@ -32,12 +32,12 @@ namespace Paging {
 	class Tables {
 		private:
 			bool pmmReady = false;
-			P0Wrapper wrapper;
 			void *codeStart = nullptr, *dataStart = nullptr, *debugStart = nullptr;
 			uintptr_t assign(Table *, ptrdiff_t, uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3,
 			                 uint8_t index4, uint8_t index5, void *physical = nullptr, uint8_t extra_meta = 0);
 
 		public:
+			P0Wrapper p0;
 			uintptr_t pmmStart;
 			/** This should be a physical address. */
 			Table *tables;
@@ -48,8 +48,8 @@ namespace Paging {
 			Tables(const Tables &) = default;
 			Tables(Tables &&) = default;
 
-			Tables(void *tables_, Bitmap *bitmap_, size_t page_count):
-			wrapper(tables_), tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count) {
+			Tables(Table *tables_, Bitmap *bitmap_, size_t page_count):
+			p0(tables_), tables((Table *) tables_), bitmap(bitmap_), pageCount(page_count) {
 				asm("[ 0] -> %0" : "=r"(codeStart));
 				asm("[ 8] -> %0" : "=r"(dataStart));
 				asm("[24] -> %0" : "=r"(debugStart));

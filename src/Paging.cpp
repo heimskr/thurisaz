@@ -152,8 +152,8 @@ namespace Paging {
 	uintptr_t Tables::assign(void *virtual_, void *physical, uint8_t extra_meta) {
 		auto out = assign(p0Offset(virtual_), p1Offset(virtual_), p2Offset(virtual_),
 		              p3Offset(virtual_), p4Offset(virtual_), p5Offset(virtual_), physical, extra_meta);
-		printf("Assigned 0x%lx -> 0x%lx (%ld -> %ld): 0x%lx (%ld)\n",
-			virtual_, physical, virtual_, physical, out, out);
+		// printf("Assigned 0x%lx -> 0x%lx (%ld -> %ld): 0x%lx (%ld)\n",
+		// 	virtual_, physical, virtual_, physical, out, out);
 		return out;
 	}
 

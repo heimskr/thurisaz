@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Commands.h"
 #include "Paging.h"
 #include "fs/FS.h"
 
@@ -21,54 +22,70 @@ struct ProcessData {
 		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(std::move(wrapper_)) {}
 };
 
-struct Kernel;
+class Kernel;
 
 extern Kernel *global_kernel;
 
-struct Kernel {
-	static void __attribute__((noreturn)) panic(const std::string &);
-	static void __attribute__((noreturn)) panic(const char *);
-	static void __attribute__((noreturn)) panicf(const char *, ...);
+extern "C" void terminate_process(long pid);
+extern "C" void kernel_loop();
+extern long keybrd_index;
+extern unsigned long keybrd_queue[16];
 
-	std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
-	std::map<long, ProcessData> processes;
-	Paging::Tables &tables;
+class Kernel {
+	private:
+		std::string line;
+		std::vector<std::string> pieces;
 
-	Kernel() = delete;
-	Kernel(const Kernel &) = delete;
-	Kernel(Kernel &&) = delete;
+	public:
+		static void __attribute__((noreturn)) panic(const std::string &);
+		static void __attribute__((noreturn)) panic(const char *);
+		static void __attribute__((noreturn)) panicf(const char *, ...);
 
-	Kernel(Paging::Tables &tables_): tables(tables_) {
-		global_kernel = this;
-	}
+		std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
+		std::map<long, ProcessData> processes;
+		Paging::Tables &tables;
+		Thurisaz::Context context = {*this};
+		std::map<std::string, Thurisaz::Command> commands;
 
-	Kernel & operator=(const Kernel &) = delete;
-	Kernel & operator=(Kernel &&) = delete;
+		Kernel() = delete;
+		Kernel(const Kernel &) = delete;
+		Kernel(Kernel &&) = delete;
 
-	bool getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out);
-	bool mount(const std::string &, std::shared_ptr<FS::Driver>);
-	bool unmount(const std::string &);
-	long getPID() const;
+		Kernel(Paging::Tables &tables_): tables(tables_) {
+			global_kernel = this;
+			Thurisaz::addCommands(commands);
+			line.reserve(256);
+		}
 
-	int rename(const char *path, const char *newpath);
-	int release(const char *path);
-	int statfs(const char *path, FS::DriverStats &);
-	int utimens(const char *path, const timespec &);
-	int create(const char *path, mode_t, uid_t, gid_t);
-	int write(const char *path, const char *buffer, size_t size, off_t offset);
-	int mkdir(const char *path, mode_t, uid_t, gid_t);
-	int truncate(const char *path, off_t size);
-	int rmdir(const char *path, bool recursive = false);
-	int unlink(const char *path);
-	int open(const char *path);
-	int read(const char *path, void *buffer, size_t size, off_t offset);
-	int readdir(const char *path, FS::DirFiller filler);
-	int getattr(const char *path, FS::FileStats &);
-	int getsize(const char *path, size_t &out);
-	/** Returns 1 if the path is a directory, 0 if it isn't or a negative error code if an error occurred. */
-	int isdir(const char *path);
-	/** Returns 1 if the path is a file, 0 if it isn't or a negative error code if an error occurred. */
-	int isfile(const char *path);
-	/** Returns 0 if the file exists or a negative error code otherwise. */
-	int exists(const char *path);
+		Kernel & operator=(const Kernel &) = delete;
+		Kernel & operator=(Kernel &&) = delete;
+
+		bool getDriver(const std::string &path, std::string &relative_out, std::shared_ptr<FS::Driver> &driver_out);
+		bool mount(const std::string &, std::shared_ptr<FS::Driver>);
+		bool unmount(const std::string &);
+		long getPID() const;
+		void terminateProcess(long pid);
+		void loop();
+
+		int rename(const char *path, const char *newpath);
+		int release(const char *path);
+		int statfs(const char *path, FS::DriverStats &);
+		int utimens(const char *path, const timespec &);
+		int create(const char *path, mode_t, uid_t, gid_t);
+		int write(const char *path, const char *buffer, size_t size, off_t offset);
+		int mkdir(const char *path, mode_t, uid_t, gid_t);
+		int truncate(const char *path, off_t size);
+		int rmdir(const char *path, bool recursive = false);
+		int unlink(const char *path);
+		int open(const char *path);
+		int read(const char *path, void *buffer, size_t size, off_t offset);
+		int readdir(const char *path, FS::DirFiller filler);
+		int getattr(const char *path, FS::FileStats &);
+		int getsize(const char *path, size_t &out);
+		/** Returns 1 if the path is a directory, 0 if it isn't or a negative error code if an error occurred. */
+		int isdir(const char *path);
+		/** Returns 1 if the path is a file, 0 if it isn't or a negative error code if an error occurred. */
+		int isfile(const char *path);
+		/** Returns 0 if the file exists or a negative error code otherwise. */
+		int exists(const char *path);
 };

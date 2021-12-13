@@ -5,6 +5,7 @@ $k0: Stores process ID
 $k1: Stores kernel stack pointer
 $k2: Stores process stack pointer
 $k3: Stores result of svpg
+$k4: Stores kernel P0
 
 $ke: Temporary values
 $kf: Temporary values

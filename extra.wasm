@@ -45,12 +45,16 @@ name: "Thurisaz Extra"
 
 	@int_system.term
 	<p "(term)\n">
-	: int_system.end
+	%setpt $k4
+	%page on
+	$a1 -> $a0
+	:: terminate_process
+	:: kernel_loop
 
 	@int_system.end
 	$k2 -> $sp
 	$e0 += 8
-	: $e0
+	: ] %page $e0
 
 @__cxa_atexit
 	// $m1 = __atexit_count;

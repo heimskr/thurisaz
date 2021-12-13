@@ -56,7 +56,7 @@ DEPFLAGS = -f $(DEPFILE) -s $(DEPTOKEN)
 
 depend:
 	@ echo $(DEPTOKEN) > $(DEPFILE)
-	makedepend $(DEPFLAGS) -- $(COMPILER) $(CFLAGS) -- $(SOURCES) 2>/dev/null
+	makedepend $(DEPFLAGS) -- $(COMPILER) -Iinclude -- $(SOURCES) 2>/dev/null
 	@ rm $(DEPFILE).bak
 
 sinclude $(DEPFILE)

@@ -3,8 +3,11 @@
 
 #include "Kernel.h"
 #include "Print.h"
+#include "util.h"
 
 Kernel *global_kernel = nullptr;
+long keybrd_index = 0;
+unsigned long keybrd_queue[16] = {0};
 
 void __attribute__((noreturn)) Kernel::panic(const std::string &message) {
 	panic(message.c_str());
@@ -83,6 +86,62 @@ long Kernel::getPID() const {
 	long out;
 	for (out = 0; processes.count(out) != 0 && 0 <= out; ++out);
 	return out;
+}
+
+void Kernel::terminateProcess(long pid) {
+	if (processes.count(pid) == 0)
+		panicf("Can't terminate %ld: process not found", pid);
+	processes.erase(pid);
+	printf("Terminated %ld.\n", pid);
+}
+
+void Kernel::loop() {
+	strprint("\e[32m$\e[39;1m ");
+
+	for (;;) {
+		asm("<rest>");
+		for (long i = 0; i <= keybrd_index; ++i) {
+			const long combined = keybrd_queue[i];
+			const char key = combined & 0xff;
+			long mask = 1l;
+			mask <<= 32;
+			// const bool shift = (combined & mask) != 0;
+			// const bool alt   = (combined & (mask << 1)) != 0;
+			const bool ctrl  = (combined & (mask << 2)) != 0;
+
+			if (key == 'u' && ctrl) {
+				line.clear();
+				strprint("\e[2K\e[G\e[0;32m$\e[39;1m ");
+			} else if (key == 0x7f) {
+				if (!line.empty()) {
+					strprint("\e[D \e[D");
+					line.pop_back();
+				}
+			} else if (key == 0x0a) {
+				if (!line.empty()) {
+					strprint("\e[0m\n");
+					pieces = split<std::vector>(line, " ", true);
+					line.clear();
+					const long status = Thurisaz::runCommand(commands, context, pieces);
+					if (status == Thurisaz::Command::NOT_FOUND)
+						strprint("Unknown command.\n");
+					else if (status == Thurisaz::Command::EXIT_SHELL)
+						return;
+					if (status == 0)
+						strprint("\e[32m$\e[39;1m ");
+					else
+						strprint("\e[31m$\e[39;1m ");
+				}
+			} else if (0x7f < key) {
+				asm("<prx %0>" :: "r"(key));
+			} else {
+				line.push_back(key & 0xff);
+				asm("<prc %0>" :: "r"(key & 0xff));
+			}
+		}
+
+		keybrd_index = -1;
+	}
 }
 
 int Kernel::rename(const char *path, const char *newpath) {
@@ -229,4 +288,16 @@ int Kernel::exists(const char *path) {
 	if (getDriver(path_str, relative, driver))
 		return driver->exists(relative.c_str());
 	return -ENODEV;
+}
+
+extern "C" void terminate_process(long pid) {
+	if (!global_kernel)
+		Kernel::panic("Can't terminate process: no global kernel");
+	global_kernel->terminateProcess(pid);
+}
+
+extern "C" void kernel_loop() {
+	if (!global_kernel)
+		Kernel::panic("Can't loop: no global kernel");
+	global_kernel->loop();
 }

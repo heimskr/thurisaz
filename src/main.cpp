@@ -36,9 +36,6 @@ struct NoisyDestructor {
 	~NoisyDestructor() { strprint(string); }
 };
 
-long keybrd_index = 0;
-unsigned long keybrd_queue[16] = {0};
-
 typedef void (*InterruptHandler)();
 
 InterruptHandler table[] = {
@@ -118,7 +115,7 @@ extern "C" void kernel_main() {
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
 #endif
 
-	uint64_t *tables = (uint64_t *) upalign((uintptr_t) page_tables_start, 2048);
+	Paging::Table *tables = (Paging::Table *) upalign((uintptr_t) page_tables_start, 2048);
 	// The first table is P0.
 	asm("%%setpt %0" :: "r"(tables));
 
@@ -167,11 +164,9 @@ extern "C" void kernel_main() {
 		Kernel kernel(wrapper_ref);
 		printf("kernel[%ld]\n", global_kernel);
 
-		std::string line;
-		line.reserve(256);
 
-		Thurisaz::Context context(kernel);
-		asm("<io devcount> \n $r0 -> %0" : "=r"(context.driveCount));
+		// Thurisaz::Context context(kernel);
+		asm("<io devcount> \n $r0 -> %0" : "=r"(kernel.context.driveCount));
 
 		// ([] {
 		// 	std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
@@ -180,97 +175,58 @@ extern "C" void kernel_main() {
 		// 	map_loop(map);
 		// })();
 
-		strprint("\e[32m$\e[39;1m ");
 
 		debug_enable = 0;
 		debug_disable = 1;
-		std::map<std::string, Thurisaz::Command> commands;
-		Thurisaz::addCommands(commands);
+		// std::map<std::string, Thurisaz::Command> commands;
+		// Thurisaz::addCommands(commands);
 
-		for (;;) {
-			asm("<rest>");
-			for (long i = 0; i <= keybrd_index; ++i) {
-				const long combined = keybrd_queue[i];
-				const char key = combined & 0xff;
-				long mask = 1l;
-				mask <<= 32;
-				// const bool shift = (combined & mask) != 0;
-				// const bool alt   = (combined & (mask << 1)) != 0;
-				const bool ctrl  = (combined & (mask << 2)) != 0;
-
-				if (key == 'u' && ctrl) {
-					line.clear();
-					strprint("\e[2K\e[G\e[0;32m$\e[39;1m ");
-				} else if (key == 0x7f) {
-					if (!line.empty()) {
-						strprint("\e[D \e[D");
-						line.pop_back();
-					}
-				} else if (key == 0x0a) {
-					if (!line.empty()) {
-						strprint("\e[0m\n");
-						const std::vector<std::string> pieces = split<std::vector>(line, " ", true);
-						line.clear();
-						const long status = Thurisaz::runCommand(commands, context, pieces);
-						if (status == Thurisaz::Command::NOT_FOUND)
-							strprint("Unknown command.\n");
-						else if (status == Thurisaz::Command::EXIT_SHELL)
-							return;
-						if (status == 0)
-							strprint("\e[32m$\e[39;1m ");
-						else
-							strprint("\e[31m$\e[39;1m ");
-					}
-				} else if (0x7f < key) {
-					asm("<prx %0>" :: "r"(key));
-				} else {
-					line.push_back(key & 0xff);
-					asm("<prc %0>" :: "r"(key & 0xff));
-				}
-			}
-
-			keybrd_index = -1;
-		}
+		kernel.loop();
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }
 
 extern "C" {
 	void __attribute__((naked)) int_inexec() {
-		asm("<p \"IE\\n\">");
-		asm("<halt>");
+		asm("<p \"IE\\n\"> \n\
+		     ] %page       \n\
+		     <halt>");
 	}
 
 	void __attribute__((naked)) int_bwrite() {
 		asm("<p \"BW \"> \n\
 		     <prd $e2>   \n\
-			 <p \"\\n\"> \n\
+		     <p \"\\n\"> \n\
+		     ] %page     \n\
 		     <halt>");
 	}
 
 	void __attribute__((naked)) int_timer() {
-		asm("<p \"TI\\n\">");
-		asm("%time 2000000");
-		asm("<rest>");
+		asm("<p \"TI\\n\"> \n\
+		     ] %page       \n\
+		     %time 2000000 \n\
+		     <rest>");
 	}
 
 	void __attribute__((naked)) int_pagefault() {
-		asm("63 -> $m0               \n\
-		     <p \"PF \">             \n\
-		     <prd $e0>               \n\
-		     32 -> $m0               \n\
-		     <prc $m0>               \n\
-		     <prd $e1>               \n\
-		     <prc $m0>               \n\
-		     <prd $e2>               \n\
-		     10 -> $m0               \n\
-		     <prc $m0>               \n\
+		asm("63 -> $m0   \n\
+		     <p \"PF \"> \n\
+		     <prd $e0>   \n\
+		     32 -> $m0   \n\
+		     <prc $m0>   \n\
+		     <prd $e1>   \n\
+		     <prc $m0>   \n\
+		     <prd $e2>   \n\
+		     10 -> $m0   \n\
+		     <prc $m0>   \n\
+		     ] %page     \n\
 		     <halt>");
 	}
 
 	void __attribute__((naked)) int_keybrd() {
 		asm("[keybrd_index] -> $e3 \n\
-		     $e3 > 14 -> $e4       \n\
-		     : $e0 if $e4          \n\
+		     $e3 < 15 -> $e4       \n\
+		     : keybrd_cont if $e4  \n\
+		     : ] %page $e0         \n\
 		     @keybrd_cont          \n\
 		     keybrd_queue -> $e4   \n\
 		     $e3 + 1 -> $e3        \n\
@@ -278,6 +234,6 @@ extern "C" {
 		     $e3 << 3 -> $e3       \n\
 		     $e4 + $e3 -> $e3      \n\
 		     $e2 -> [$e3]          \n\
-		     : $e0                 ");
+		     : ] %page $e0         ");
 	}
 }
