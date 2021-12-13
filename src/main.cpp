@@ -103,17 +103,15 @@ extern "C" void kernel_main() {
 
 	char * const bitmap_start = (char *) (memsize / 10);
 	const size_t page_count   = updiv(memsize, 65536);
-	// const size_t table_count  = Paging::getTableCount(page_count);
-	// const size_t tables_size  = table_count * 2048 + 2047;
+	const size_t table_count  = Paging::getTableCount(page_count);
+	const size_t tables_size  = table_count * 2048 + 2047;
 	char * const page_tables_start  = bitmap_start + page_count / 8;
-	// char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
-	// char * const kernel_stack_start = (char *) (memsize * 2 / 5);
+	char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
+	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
 	// char * const application_start  = (char *) (memsize / 2);
 
 	Memory memory;
-#ifndef ENABLE_PAGING
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
-#endif
 
 	Paging::Table *tables = (Paging::Table *) upalign((uintptr_t) page_tables_start, 2048);
 	// The first table is P0.

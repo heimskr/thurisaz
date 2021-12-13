@@ -5,6 +5,11 @@
 
 #define MEMORY_ALIGN 32
 
+class Memory;
+
+extern Memory *global_memory;
+extern bool mal_debug;
+
 class Memory {
 	public:
 		static constexpr size_t PAGE_LENGTH = 65536;
@@ -28,7 +33,7 @@ class Memory {
 		int merge();
 
 	public:
-		char *start, *high, *end;
+		char *start = nullptr, *high = nullptr, *end = nullptr;
 
 		Memory(const Memory &) = delete;
 		Memory(Memory &&) = delete;
@@ -53,8 +58,6 @@ extern "C" {
 	void free(void *);
 	int posix_memalign(void **memptr, size_t alignment, size_t size);
 }
-
-extern Memory *global_memory;
 
 #define MEMORY_OPERATORS_SET
 #ifdef __clang__
