@@ -91,8 +91,16 @@ long Kernel::getPID() const {
 void Kernel::terminateProcess(long pid) {
 	if (processes.count(pid) == 0)
 		panicf("Can't terminate %ld: process not found", pid);
-	processes.erase(pid);
+	ProcessData &process = processes.at(pid);
+
+	const size_t index = uintptr_t(process.physicalStart) / Paging::PAGE_SIZE;
+	for (size_t i = 0; i < process.pagesNeeded; ++i)
+		tables.mark(index + i, false);
+
+	delete[] process.tableBase;
+
 	printf("Terminated %ld.\n", pid);
+	processes.erase(pid);
 }
 
 void Kernel::loop() {

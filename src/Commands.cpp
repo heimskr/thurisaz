@@ -244,7 +244,8 @@ namespace Thurisaz {
 			if (pid < 0)
 				Kernel::panicf("Invalid pid: %ld", pid);
 
-			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper));
+			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper), start,
+				pages_needed);
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(p0));
 
 			asm("%0 -> $k0" :: "r"(pid));
@@ -253,17 +254,6 @@ namespace Thurisaz {
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
 			asm(": %%setpt %0 $rt" :: "r"(translated));
-
-
-
-			// asm("$k1 -> $sp");
-
-			// context.kernel.processes.erase(pid);
-			// free(table_array);
-
-			// const size_t index = (uintptr_t) start / Paging::PAGE_SIZE;
-			// for (size_t i = 0; i < pages_needed; ++i)
-			// 	tables.mark(index + i, false);
 
 			return 0;
 		});

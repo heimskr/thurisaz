@@ -14,12 +14,18 @@ struct ProcessData {
 	Paging::Table *tableBase;
 	size_t tableCount;
 	Paging::Tables wrapper;
+	void *physicalStart;
+	size_t pagesNeeded;
 
-	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, const Paging::Tables &wrapper_):
-		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(wrapper_) {}
+	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, const Paging::Tables &wrapper_,
+	void *physical_start, size_t pages_needed):
+		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(wrapper_), physicalStart(physical_start),
+		pagesNeeded(pages_needed) {}
 
-	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, Paging::Tables &&wrapper_):
-		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(std::move(wrapper_)) {}
+	ProcessData(long pid_, Paging::Table *table_base, size_t table_count, Paging::Tables &&wrapper_,
+	void *physical_start, size_t pages_needed):
+		pid(pid_), tableBase(table_base), tableCount(table_count), wrapper(std::move(wrapper_)),
+		physicalStart(physical_start), pagesNeeded(pages_needed) {}
 };
 
 class Kernel;
