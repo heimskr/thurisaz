@@ -47,6 +47,8 @@ class Kernel {
 		static void __attribute__((noreturn)) panic(const char *);
 		static void __attribute__((noreturn)) panicf(const char *, ...);
 
+		static constexpr size_t PROCESS_STACK_PAGES = 16; // 1 MiB
+
 		std::map<std::string, std::shared_ptr<FS::Driver>> mounts;
 		std::map<long, ProcessData> processes;
 		Paging::Tables &tables;

@@ -194,7 +194,8 @@ namespace Thurisaz {
 			const size_t code_length = parser->getCodeLength();
 			const size_t data_length = parser->getDataLength();
 			const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PAGE_SIZE);
-			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE);
+			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE)
+				+ Kernel::PROCESS_STACK_PAGES;
 			// We start here instead of 0 so that segfaults are more easily catchable.
 			const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
 			auto &tables = context.kernel.tables;
@@ -225,8 +226,6 @@ namespace Thurisaz {
 			void *translated;
 			asm("translate %1 -> %0" : "=r"(translated) : "r"(table_array));
 
-			// TODO!: give some space for the stack
-
 			const uintptr_t code_end = upalign(code_offset + code_length, Paging::PAGE_SIZE);
 			const uintptr_t data_end = upalign(data_offset + data_length, Paging::PAGE_SIZE);
 
@@ -234,11 +233,19 @@ namespace Thurisaz {
 				context.kernel.tables.pageCount);
 			wrapper.setStarts((void *) code_offset, (void *) data_offset).setPMM(context.kernel.tables.pmmStart);
 
-			for (uintptr_t physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
+			uintptr_t physical;
+
+			for (physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
 				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
 
-			for (uintptr_t physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
+			for (physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
 				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
+
+			uintptr_t high;
+			asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PAGE_SIZE));
+
+			for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
+				wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical);
 
 			long pid = context.kernel.getPID();
 			if (pid < 0)
@@ -253,6 +260,8 @@ namespace Thurisaz {
 			asm("%0 -> $k4" :: "r"(context.kernel.tables.p0.entries));
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
+			asm("0xfffffff8 -> $sp");
+			asm("lui: 0xffffffff -> $sp");
 			asm(": %%setpt %0 $rt" :: "r"(translated));
 
 			return 0;
