@@ -7,6 +7,18 @@
 
 #define NOFREE() do { strprint("\e[31mERROR\e[39m: No free pages!\n"); asm("<halt>"); } while (false)
 
+static char popcnt(uint64_t x) {
+	// Thanks, Wikipedia :)
+	static constexpr uint64_t m1 = 0x5555555555555555;
+	static constexpr uint64_t m2 = 0x3333333333333333;
+	static constexpr uint64_t m4 = 0x0f0f0f0f0f0f0f0f;
+	static constexpr uint64_t h01 = 0x0101010101010101;
+	x -= (x >> 1) & m1;
+	x = (x & m2) + ((x >> 2) & m2);
+	x = (x + (x >> 4)) & m4;
+	return (x * h01) >> 56;
+}
+
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
 		size_t divisor = TABLE_ENTRIES;
@@ -138,6 +150,20 @@ namespace Paging {
 		return nullptr;
 	}
 
+	size_t Tables::countFree() const {
+		size_t out = 0;
+		for (size_t i = 0; i < pageCount; i += 64) {
+			size_t ones = bitmap[i / 64];
+			if (ones == -1ul)
+				continue;
+			if (pageCount - i < 64)
+				ones <<= 64 + i - pageCount;
+			out += 64 - popcnt(ones);
+		}
+
+		return out;
+	}
+
 	uintptr_t Tables::assignBeforePMM(uint8_t index0, uint8_t index1, uint8_t index2, uint8_t index3, uint8_t index4,
 	                                  uint8_t index5, void *physical, uint8_t extra_meta) {
 		return assign(tables, 0, index0, index1, index2, index3, index4, index5, physical, extra_meta);
@@ -161,40 +187,50 @@ namespace Paging {
 	                         uint8_t index3, uint8_t index4, uint8_t index5, void *physical, uint8_t extra_meta) {
 		if (!(usable[0][index0] & PRESENT)) {
 			// Allocate a new page for the P1 table if the P0 entry doesn't have the present bit set.
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++p1count;
 				usable[0][index0] = ADDR2ENTRY04(free_addr);
+			}
 			else NOFREE();
 		}
 
 		Entry *p1 = (Entry *) ((char *) (usable[0][index0] & ~MASK04) + offset);
 		if (!(p1[index1] & PRESENT)) {
 			// Allocate a new page for the P2 table if the P1 entry doesn't have the present bit set.
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++p2count;
 				p1[index1] = ADDR2ENTRY04(free_addr);
+			}
 			else NOFREE();
 		}
 
 		Entry *p2 = (Entry *) ((char *) (p1[index1] & ~MASK04) + offset);
 		if (!(p2[index2] & PRESENT)) {
 			// Allocate a new page for the P3 table if the P2 entry doesn't have the present bit set.
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++p3count;
 				p2[index2] = ADDR2ENTRY04(free_addr);
+			}
 			else NOFREE();
 		}
 
 		Entry *p3 = (Entry *) ((char *) (p2[index2] & ~MASK04) + offset);
 		if (!(p3[index3] & PRESENT)) {
 			// Allocate a new page for the P4 table if the P3 entry doesn't have the present bit set.
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++p4count;
 				p3[index3] = ADDR2ENTRY04(free_addr);
+			}
 			else NOFREE();
 		}
 
 		Entry *p4 = (Entry *) ((char *) (p3[index3] & ~MASK04) + offset);
 		if (!(p4[index4] & PRESENT)) {
 			// Allocate a new page for the P5 table if the P4 entry doesn't have the present bit set.
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++p5count;
 				p4[index4] = ADDR2ENTRY04(free_addr);
+			}
 			else NOFREE();
 		}
 
@@ -206,8 +242,10 @@ namespace Paging {
 			if (physical)
 				return (p5[index5] = addr2entry5(physical) | extra_meta) & ~MASK5;
 
-			if (void *free_addr = allocateFreePhysicalAddress())
+			if (void *free_addr = allocateFreePhysicalAddress()) {
+				++extracount;
 				return (p5[index5] = addr2entry5(free_addr) | extra_meta) & ~MASK5;
+			}
 
 			NOFREE();
 		}

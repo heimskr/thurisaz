@@ -44,6 +44,8 @@ namespace Paging {
 			Bitmap *bitmap;
 			size_t pageCount;
 
+			size_t p1count = 0, p2count = 0, p3count = 0, p4count = 0, p5count = 0, extracount = 0;
+
 			Tables() = delete;
 			Tables(const Tables &) = default;
 			Tables(Tables &&) = default;
@@ -66,6 +68,7 @@ namespace Paging {
 			void mark(size_t index, bool used = true);
 			bool isFree(size_t index) const;
 			void * allocateFreePhysicalAddress(size_t consecutive_count = 1);
+			size_t countFree() const;
 
 			Tables &  setCodeStart(void *ptr) { codeStart  = ptr; return *this; }
 			Tables &  setDataStart(void *ptr) { dataStart  = ptr; return *this; }

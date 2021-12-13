@@ -1,6 +1,7 @@
 #include "Commands.h"
 #include "Interrupts.h"
 #include "Kernel.h"
+#include "mal.h"
 #include "Paging.h"
 #include "Print.h"
 #include "util.h"
@@ -236,25 +237,26 @@ namespace Thurisaz {
 			uintptr_t physical;
 
 			for (physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
+				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
 
 			for (physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical);
+				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
 
 			uintptr_t high;
 			asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PAGE_SIZE));
 			uintptr_t global_start = virtual_start + data_end;
 
 			for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical);
+				wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical,
+					Paging::USERPAGE);
 
 			for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical);
+				wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical,
+					Paging::USERPAGE);
 
 			long pid = context.kernel.getPID();
 			if (pid < 0)
 				Kernel::panicf("Invalid pid: %ld", pid);
-
 
 			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper), start,
 				pages_needed);
@@ -452,6 +454,18 @@ namespace Thurisaz {
 				printf("Parsing failed. %ld\n", value);
 			else
 				printf("Parsing succeeded. %ld\n", value);
+			return 0;
+		});
+
+		commands.try_emplace("mem", 0, 0, [](Context &, const std::vector<std::string> &) -> long {
+			printf("Allocated:   %lu\nUnallocated: %lu\n",
+				global_memory->getAllocated(), global_memory->getUnallocated());
+			return 0;
+		});
+
+		commands.try_emplace("pages", 0, 0, [](Context &context, const std::vector<std::string> &) -> long {
+			const size_t free_pages = context.kernel.tables.countFree();
+			printf("Used pages: %lu\nFree pages: %lu\n", context.kernel.tables.pageCount - free_pages, free_pages);
 			return 0;
 		});
 	}
