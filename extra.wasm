@@ -44,10 +44,9 @@ name: "Thurisaz Extra"
 	<halt>
 
 	@int_system.term
-	<p "(term)\n">
 	%setpt $k4
 	%page on
-	$a1 -> $a0
+	$k0 -> $a0
 	:: terminate_process
 	:: kernel_loop
 

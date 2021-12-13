@@ -249,7 +249,7 @@ namespace Thurisaz {
 
 			asm("%0 -> $k0" :: "r"(pid));
 			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
-			asm("%0 -> $k4" :: "r"(wrapper.p0.entries));
+			asm("%0 -> $k4" :: "r"(context.kernel.tables.p0.entries));
 			asm("$sp -> $k1");
 			asm("$ke -> $rt");
 			asm(": %%setpt %0 $rt" :: "r"(translated));
