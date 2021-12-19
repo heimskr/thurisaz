@@ -120,23 +120,11 @@ extern "C" void kernel_main() {
 	uint64_t * const bitmap = (uint64_t *) bitmap_start;
 	Paging::Tables table_wrapper(tables, bitmap, page_count);
 	table_wrapper.reset();
-	printf("used: %lu, p1[%lu], p2[%lu], p3[%lu], p4[%lu], p5[%lu], extra[%lu]\n",
-		table_wrapper.pageCount - table_wrapper.countFree(), table_wrapper.p1count, table_wrapper.p2count,
-		table_wrapper.p3count, table_wrapper.p4count, table_wrapper.p5count, table_wrapper.extracount);
 	table_wrapper.bootstrap();
-	printf("used: %lu, p1[%lu], p2[%lu], p3[%lu], p4[%lu], p5[%lu], extra[%lu]\n",
-		table_wrapper.pageCount - table_wrapper.countFree(), table_wrapper.p1count, table_wrapper.p2count,
-		table_wrapper.p3count, table_wrapper.p4count, table_wrapper.p5count, table_wrapper.extracount);
 	table_wrapper.initPMM();
-	printf("used: %lu, p1[%lu], p2[%lu], p3[%lu], p4[%lu], p5[%lu], extra[%lu]\n",
-		table_wrapper.pageCount - table_wrapper.countFree(), table_wrapper.p1count, table_wrapper.p2count,
-		table_wrapper.p3count, table_wrapper.p4count, table_wrapper.p5count, table_wrapper.extracount);
-
-	long mask;
-	asm("$0 - 1 -> %0 \n lui: 0 -> %0" : "=r"(mask));
 
 	for (int i = 0; bitmap[i]; ++i)
-		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & mask);
+		printf("[%2d] %032b%032b\n", i, bitmap[i] >> 32, bitmap[i] & 0xffffffff);
 	strprint("Done.\n");
 
 	asm("$sp -> $k1");

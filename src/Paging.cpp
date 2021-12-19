@@ -42,7 +42,7 @@ namespace Paging {
 	}
 
 	void Tables::bootstrap() {
-		// Assumes that the kernel isn't larger than 1024 pages (128 MiB).
+		// Assumes that the kernel isn't larger than 1024 pages (64 MiB).
 		tables[0][0] = ADDR2ENTRY04(&tables[1]);
 		tables[1][0] = ADDR2ENTRY04(&tables[2]);
 		tables[2][0] = ADDR2ENTRY04(&tables[3]);
@@ -57,7 +57,12 @@ namespace Paging {
 			tables[7][i] = addr2entry5((void *) (PAGE_SIZE * (512 + i)));
 			tables[8][i] = addr2entry5((void *) (PAGE_SIZE * (768 + i)));
 		}
-		for (unsigned i = 0; i < 16; ++i)
+
+		uintptr_t g;
+		asm("$g -> %0" : "=r"(g));
+		const size_t max = updiv(g, 64 * Paging::PAGE_SIZE);
+
+		for (size_t i = 0; i < max; ++i)
 			asm("$0 - 1 -> %0" : "=r"(bitmap[i]));
 	}
 

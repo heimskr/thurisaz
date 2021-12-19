@@ -75,6 +75,9 @@ class Kernel {
 		bool mount(const std::string &, std::shared_ptr<FS::Driver>);
 		bool unmount(const std::string &);
 		long getPID() const;
+		/** Starts a process. Be careful not to leak memory when calling this function, because it doesn't properly
+		 *  return. Deletes its argument. May return a negative error code if an error occurred */
+		long startProcess(const std::string *);
 		void terminateProcess(long pid);
 		void loop();
 

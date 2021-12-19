@@ -170,8 +170,10 @@ namespace Thurisaz {
 			ssize_t status;
 			size_t size;
 			std::unique_ptr<Wasmc::BinaryParser> parser;
+			std::string *data = nullptr;
 
 			{
+				strprint("Reading data.\n");
 				const std::string path = FS::simplifyPath(context.cwd, pieces[1]);
 				status = context.kernel.getsize(path.c_str(), size);
 				if (status != 0) {
@@ -179,101 +181,16 @@ namespace Thurisaz {
 					return -status;
 				}
 
-				std::string data;
-				data.resize(size);
-				status = context.kernel.read(path.c_str(), &data[0], size, 0);
+				data = new std::string;
+				data->resize(size);
+				status = context.kernel.read(path.c_str(), &(*data)[0], size, 0);
 				if (status < 0) {
 					printf("read failed: %ld\n", -status);
 					return -status;
 				}
-
-				parser = std::make_unique<Wasmc::BinaryParser>(data);
 			}
 
-			parser->parse();
-			const size_t code_offset = Paging::PAGE_SIZE;
-			const size_t code_length = parser->getCodeLength();
-			const size_t data_length = parser->getDataLength();
-			const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PAGE_SIZE);
-			const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE)
-				+ Kernel::PROCESS_STACK_PAGES + Kernel::PROCESS_DATA_PAGES;
-			// We start here instead of 0 so that segfaults are more easily catchable.
-			const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
-			auto &tables = context.kernel.tables;
-			void *start = tables.allocateFreePhysicalAddress(pages_needed);
-			if (!start)
-				Kernel::panicf("Couldn't allocate %lu pages", pages_needed);
-
-			parser->applyRelocation(virtual_start + code_offset, virtual_start + data_offset);
-
-			for (size_t i = 0, max = parser->rawCode.size(); i < max; ++i)
-				*((uint64_t *) ((char *) start + tables.pmmStart + code_offset) + i) = parser->rawCode[i];
-
-			for (size_t i = 0, max = parser->rawData.size(); i < max; ++i)
-				*((uint64_t *) ((char *) start + tables.pmmStart + data_offset) + i) = parser->rawData[i];
-
-			parser.reset();
-
-			Paging::Table *table_array = nullptr;
-			size_t table_count = Paging::getTableCount(pages_needed);
-			const size_t table_bytes = sizeof(Paging::Table) * table_count;
-			Paging::Table *table_base = new Paging::Table[table_count + 1];
-			if (!table_base)
-				Kernel::panicf("Couldn't allocate %lu bytes", table_bytes + Paging::TABLE_SIZE);
-			table_array = (Paging::Table *) upalign(uintptr_t(table_base), Paging::TABLE_SIZE);
-			asm("memset %0 x $0 -> %1" :: "r"(table_bytes), "r"(table_array));
-			Paging::Entry *p0 = table_array[0];
-
-			void *translated;
-			asm("translate %1 -> %0" : "=r"(translated) : "r"(table_array));
-
-			const uintptr_t code_end = upalign(code_offset + code_length, Paging::PAGE_SIZE);
-			const uintptr_t data_end = upalign(data_offset + data_length, Paging::PAGE_SIZE);
-
-			Paging::Tables wrapper((Paging::Table *) translated, context.kernel.tables.bitmap,
-				context.kernel.tables.pageCount);
-			wrapper.setStarts((void *) code_offset, (void *) data_offset).setPMM(context.kernel.tables.pmmStart);
-
-			uintptr_t physical;
-
-			for (physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
-
-			for (physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
-
-			uintptr_t high;
-			asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PAGE_SIZE));
-			uintptr_t global_start = virtual_start + data_end;
-
-			for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical,
-					Paging::USERPAGE);
-
-			for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PAGE_SIZE)
-				wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical,
-					Paging::USERPAGE);
-
-			long pid = context.kernel.getPID();
-			if (pid < 0)
-				Kernel::panicf("Invalid pid: %ld", pid);
-
-			context.kernel.processes.try_emplace(pid, pid, table_base, table_count, std::move(wrapper), start,
-				pages_needed);
-			asm("translate %1 -> %0" : "=r"(translated) : "r"(p0));
-
-
-			asm("%0 -> $k0" :: "r"(pid));
-			asm("%0 -> $ke" :: "r"(virtual_start + code_offset));
-			asm("%0 -> $k4" :: "r"(context.kernel.tables.p0.entries));
-			asm("$sp -> $k1");
-			asm("%0 -> $g" :: "r"(global_start));
-			asm("$ke -> $rt");
-			asm("0xfffffff8 -> $sp");
-			asm("lui: 0xffffffff -> $sp");
-			asm(": %%setpt %0 $rt" :: "r"(translated));
-
-			return 0;
+			return context.kernel.startProcess(data);
 		});
 
 		commands.try_emplace("cd", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {

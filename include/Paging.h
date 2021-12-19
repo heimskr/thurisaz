@@ -59,7 +59,7 @@ namespace Paging {
 
 			// Keep in mind that on startup, it's safe to assume that memory past *$g will be zeroed out.
 			void reset(bool zero_out_tables = false);
-			/** Identity maps the first 256 pages. */
+			/** Identity maps the first 1024 pages. */
 			void bootstrap();
 			void initPMM();
 			Tables & setPMM(uintptr_t pmm_start, bool ready = true);
