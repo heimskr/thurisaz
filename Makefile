@@ -52,7 +52,7 @@ clean:
 
 DEPFILE  = .dep
 DEPTOKEN = "\# MAKEDEPENDS"
-DEPFLAGS = -f $(DEPFILE) -s $(DEPTOKEN)
+DEPFLAGS = -f $(DEPFILE) -s $(DEPTOKEN) -o.ll
 
 depend:
 	@ echo $(DEPTOKEN) > $(DEPFILE)
