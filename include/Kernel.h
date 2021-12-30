@@ -6,6 +6,7 @@
 
 #include "Commands.h"
 #include "Paging.h"
+#include "Timer.h"
 #include "fs/FS.h"
 
 struct ProcessData {
@@ -33,9 +34,11 @@ class Kernel;
 extern Kernel *global_kernel;
 
 extern "C" void terminate_process(long pid);
+extern "C" void timer_callback();
 extern "C" void kernel_loop();
 extern long keybrd_index;
 extern unsigned long keybrd_queue[16];
+extern bool timer_expired;
 
 class Kernel {
 	private:
@@ -56,6 +59,7 @@ class Kernel {
 		Thurisaz::Context context = {*this};
 		std::map<std::string, Thurisaz::Command> commands;
 		uintptr_t globalArea;
+		Timer timer;
 
 		Kernel() = delete;
 		Kernel(const Kernel &) = delete;
@@ -66,6 +70,7 @@ class Kernel {
 			Thurisaz::addCommands(commands);
 			line.reserve(256);
 			asm("$g -> %0" : "=r"(globalArea));
+			asm("<io devcount> \n $r0 -> %0" : "=r"(context.driveCount));
 		}
 
 		Kernel & operator=(const Kernel &) = delete;
@@ -76,8 +81,8 @@ class Kernel {
 		bool unmount(const std::string &);
 		long getPID() const;
 		/** Starts a process. Be careful not to leak memory when calling this function, because it doesn't properly
-		 *  return. Deletes its argument. May return a negative error code if an error occurred */
-		long startProcess(const std::string *);
+		 *  return. Deletes its argument. May return a negative error code if an error occurred. */
+		void __attribute__((noreturn)) startProcess(const std::string *);
 		void terminateProcess(long pid);
 		void loop();
 

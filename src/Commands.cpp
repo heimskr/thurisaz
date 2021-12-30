@@ -190,7 +190,8 @@ namespace Thurisaz {
 				}
 			}
 
-			return context.kernel.startProcess(data);
+			context.kernel.startProcess(data);
+			return 0;
 		});
 
 		commands.try_emplace("cd", 0, 1, [](Context &context, const std::vector<std::string> &pieces) -> long {
@@ -383,6 +384,14 @@ namespace Thurisaz {
 		commands.try_emplace("pages", 0, 0, [](Context &context, const std::vector<std::string> &) -> long {
 			const size_t free_pages = context.kernel.tables.countFree();
 			printf("Used pages: %lu\nFree pages: %lu\n", context.kernel.tables.pageCount - free_pages, free_pages);
+			return 0;
+		});
+
+		commands.try_emplace("timers", 0, 0, [](Context &context, const std::vector<std::string> &) -> long {
+			context.kernel.timer.queue(1'500'000, [] { strprint("1,500,000\n"); });
+			context.kernel.timer.queue(2'000'000, [] { strprint("2,000,000\n"); });
+			context.kernel.timer.queue(  500'000, [] { strprint(  "500,000\n"); });
+			context.kernel.timer.queue(1'500'000, [] { strprint("1,000,000\n"); });
 			return 0;
 		});
 	}

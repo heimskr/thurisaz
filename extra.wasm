@@ -55,6 +55,12 @@ name: "Thurisaz Extra"
 	$e0 += 8
 	: ] %page $e0
 
+@int_timer
+	1 -> $kf
+	$kf -> [timer_expired] /b
+	// $e0 += 8 // TODO!: verify
+	: ] %page $e0
+
 @__cxa_atexit
 	// $m1 = __atexit_count;
 	&__atexit_count -> $m3

@@ -96,8 +96,7 @@ extern "C" void kernel_main() {
 	asm("? mem -> %0" : "=r"(memsize));
 
 	if (memsize / 10 < (uintptr_t) global_start) {
-		strprint("\e[31mERROR\e[39m: Kernel is larger than 10% of main memory.\n"
-			"       Allocate more memory and restart.\n");
+		Kernel::panic("Kernel is larger than 10% of main memory. Allocate more memory and restart.");
 		asm("<halt>");
 	}
 
@@ -105,10 +104,9 @@ extern "C" void kernel_main() {
 	const size_t page_count   = updiv(memsize, 65536);
 	const size_t table_count  = Paging::getTableCount(page_count);
 	const size_t tables_size  = table_count * 2048 + 2047;
-	char * const page_tables_start  = bitmap_start + page_count / 8;
+	char * const page_tables_start  = bitmap_start + updiv(page_count, 8);
 	char * const kernel_heap_start  = (char *) upalign((uintptr_t) page_tables_start + tables_size, 2048);
 	char * const kernel_stack_start = (char *) (memsize * 2 / 5);
-	// char * const application_start  = (char *) (memsize / 2);
 
 	Memory memory;
 	memory.setBounds(kernel_heap_start, kernel_stack_start);
@@ -157,25 +155,8 @@ extern "C" void kernel_main() {
 			set->ctor();
 
 		Kernel kernel(wrapper_ref);
-		printf("kernel[%ld]\n", global_kernel);
-
-
-		// Thurisaz::Context context(kernel);
-		asm("<io devcount> \n $r0 -> %0" : "=r"(kernel.context.driveCount));
-
-		// ([] {
-		// 	std::map<std::string, int> map {{"hey", 42 | (43 << 8)}, {"there", 64}, {"friend", 100}};
-		// 	map.try_emplace("what", -10);
-		// 	printf("Map size: %lu\n", map.size());
-		// 	map_loop(map);
-		// })();
-
-
 		debug_enable = 0;
 		debug_disable = 1;
-		// std::map<std::string, Thurisaz::Command> commands;
-		// Thurisaz::addCommands(commands);
-
 		kernel.loop();
 	})((char *) &table_wrapper, (char *) &memory); //*/
 }
@@ -193,13 +174,6 @@ extern "C" {
 		     <p \"\\n\"> \n\
 		     ] %page     \n\
 		     <halt>");
-	}
-
-	void __attribute__((naked)) int_timer() {
-		asm("<p \"TI\\n\"> \n\
-		     ] %page       \n\
-		     %time 2000000 \n\
-		     <rest>");
 	}
 
 	void __attribute__((naked)) int_pagefault() {

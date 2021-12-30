@@ -9,12 +9,14 @@
 Kernel *global_kernel = nullptr;
 long keybrd_index = 0;
 unsigned long keybrd_queue[16] = {0};
+bool timer_expired = false;
 
 void __attribute__((noreturn)) Kernel::panic(const std::string &message) {
 	panic(message.c_str());
 }
 
 void __attribute__((noreturn)) Kernel::panic(const char *message) {
+	strprint("\e[2m[\e[22;31mPANIC\e[39;2m]\e[22m ");
 	strprint(message);
 	for (;;)
 		asm("<halt>");
@@ -36,11 +38,10 @@ bool Kernel::getDriver(const std::string &path, std::string &relative_out, std::
 	const std::shared_ptr<FS::Driver> *largest_driver = nullptr;
 	for (const auto &[mountpoint, driver]: mounts) {
 		const size_t msize = mountpoint.size();
-		if (msize <= path.size() && path.substr(0, msize) == mountpoint)
-			if (largest_length < msize) {
-				largest_length = msize;
-				largest_driver = &driver;
-			}
+		if (msize <= path.size() && path.substr(0, msize) == mountpoint && largest_length < msize) {
+			largest_length = msize;
+			largest_driver = &driver;
+		}
 	}
 
 	if (largest_driver) {
@@ -89,7 +90,7 @@ long Kernel::getPID() const {
 	return out;
 }
 
-long Kernel::startProcess(const std::string *text) {
+void Kernel::startProcess(const std::string *text) {
 	strprint("Instantiating parser.\n");
 	std::unique_ptr<Wasmc::BinaryParser> parser = std::make_unique<Wasmc::BinaryParser>(*text);
 	delete text;
@@ -160,13 +161,11 @@ long Kernel::startProcess(const std::string *text) {
 
 	strprint("Assigning stack.\n");
 	for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical,
-			Paging::USERPAGE);
+		wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical, Paging::USERPAGE);
 
 	strprint("Assigning free area.\n");
 	for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical,
-			Paging::USERPAGE);
+		wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical, Paging::USERPAGE);
 
 	long pid = getPID();
 	if (pid < 0)
@@ -187,7 +186,7 @@ long Kernel::startProcess(const std::string *text) {
 	asm("lui: 0xffffffff -> $sp");
 	asm("<p \"Jumping.\\n\">");
 	asm(": %%setpt %0 $rt" :: "r"(translated));
-	return pid;
+	Kernel::panic("Start process failed: jump didn't do anything");
 }
 
 void Kernel::terminateProcess(long pid) {
@@ -209,7 +208,11 @@ void Kernel::loop() {
 	strprint("\e[32m$\e[39;1m ");
 
 	for (;;) {
-		asm("<rest>");
+		if (timer_expired) {
+			timer_expired = false;
+			timer.onExpire();
+		}
+
 		for (long i = 0; i <= keybrd_index; ++i) {
 			const long combined = keybrd_queue[i];
 			const char key = combined & 0xff;
@@ -251,6 +254,7 @@ void Kernel::loop() {
 		}
 
 		keybrd_index = -1;
+		asm("<rest>");
 	}
 }
 
@@ -410,4 +414,10 @@ extern "C" void kernel_loop() {
 	if (!global_kernel)
 		Kernel::panic("Can't loop: no global kernel");
 	global_kernel->loop();
+}
+
+extern "C" void timer_callback() {
+	if (!global_kernel)
+		Kernel::panic("Can't handle timer: no global kernel");
+	global_kernel->timerCallback();
 }
