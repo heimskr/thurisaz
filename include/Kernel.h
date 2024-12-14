@@ -85,6 +85,7 @@ class Kernel {
 		void __attribute__((noreturn)) startProcess(const std::string *);
 		void terminateProcess(long pid);
 		void loop();
+		void timerCallback();
 
 		int rename(const char *path, const char *newpath);
 		int release(const char *path);

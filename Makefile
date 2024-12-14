@@ -38,10 +38,9 @@ $(UNOPTIMIZED): $(LLVMIR)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)
 
 $(OPTIMIZED): $(UNOPTIMIZED)
-	# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline -instcombine \
-	#           -aggressive-instcombine $< -o $@
-	$(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline $< -o $@
-	# cp $< $@
+	# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline -instcombine -aggressive-instcombine $< -o $@
+	# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline $< -o $@
+	$(OPT) -S --passes="function(mem2reg,dce,dse),always-inline,constmerge,deadargelim,globaldce,globalopt,inline" $< -o $@
 
 linked: $(UNOPTIMIZED)
 

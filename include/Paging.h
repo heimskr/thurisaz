@@ -5,29 +5,29 @@
 
 #include "P0Wrapper.h"
 
-#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~Paging::MASK04) | Paging::PRESENT)
+#define ADDR2ENTRY04(addr) ((((uintptr_t) addr) & ~Paging::Mask04) | Paging::Present)
 
 namespace Paging {
 	using Bitmap = uint64_t;
 	using Entry = uint64_t;
 
-	constexpr uint64_t PRESENT    = 1;
-	constexpr uint64_t WRITABLE   = 2;
-	constexpr uint64_t EXECUTABLE = 4;
-	constexpr uint64_t USERPAGE   = 8;
-	constexpr uint64_t ACCESSED   = 16;
-	constexpr uint64_t MODIFIED   = 32;
+	constexpr uint64_t Present    = 1;
+	constexpr uint64_t Writable   = 2;
+	constexpr uint64_t Executable = 4;
+	constexpr uint64_t UserPage   = 8;
+	constexpr uint64_t Accessed   = 16;
+	constexpr uint64_t Modified   = 32;
 
-	constexpr uint64_t PAGE_SIZE = 65536;
-	constexpr uint64_t TABLE_ENTRIES = 256;
-	constexpr uint64_t TABLE_SIZE = TABLE_ENTRIES * sizeof(Entry);
-	constexpr uint64_t MASK04 = 0x7ff; // Equal to eleven ones in binary.
-	constexpr uint64_t MASK5 = 0xffff; // Equal to sixteen ones in binary.
-	constexpr uint64_t NOT_ASSIGNED = 666; // Returned by assign functions when they don't need to assign a page.
+	constexpr uint64_t PageSize = 65536;
+	constexpr uint64_t TableEntries = 256;
+	constexpr uint64_t TableSize = TableEntries * sizeof(Entry);
+	constexpr uint64_t Mask04 = 0x7ff; // Equal to eleven ones in binary.
+	constexpr uint64_t Mask5 = 0xffff; // Equal to sixteen ones in binary.
+	constexpr uint64_t NotAssigned = 666; // Returned by assign functions when they don't need to assign a page.
 
 	size_t getTableCount(size_t page_count);
 
-	typedef Entry Table[TABLE_ENTRIES];
+	typedef Entry Table[TableEntries];
 
 	class Tables {
 		private:

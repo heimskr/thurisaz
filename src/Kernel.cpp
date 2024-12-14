@@ -97,14 +97,14 @@ void Kernel::startProcess(const std::string *text) {
 	strprint("Parsing.\n");
 	parser->parse();
 	strprint("Calculating.\n");
-	const size_t code_offset = Paging::PAGE_SIZE;
+	const size_t code_offset = Paging::PageSize;
 	const size_t code_length = parser->getCodeLength();
 	const size_t data_length = parser->getDataLength();
-	const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PAGE_SIZE);
-	const size_t pages_needed = updiv(data_offset + data_length, Paging::PAGE_SIZE)
+	const size_t data_offset = code_offset + upalign(parser->getDataOffset(), Paging::PageSize);
+	const size_t pages_needed = updiv(data_offset + data_length, Paging::PageSize)
 		+ Kernel::PROCESS_STACK_PAGES + Kernel::PROCESS_DATA_PAGES;
 	// We start here instead of 0 so that segfaults are more easily catchable.
-	const ptrdiff_t virtual_start = 16 * Paging::PAGE_SIZE;
+	const ptrdiff_t virtual_start = 16 * Paging::PageSize;
 	strprint("Allocating free physical addresses.\n");
 	void *start = tables.allocateFreePhysicalAddress(pages_needed);
 	if (!start)
@@ -129,8 +129,8 @@ void Kernel::startProcess(const std::string *text) {
 	strprint("Allocating tables.\n");
 	Paging::Table *table_base = new Paging::Table[table_count + 1];
 	if (!table_base)
-		Kernel::panicf("Couldn't allocate %lu bytes", table_bytes + Paging::TABLE_SIZE);
-	table_array = (Paging::Table *) upalign(uintptr_t(table_base), Paging::TABLE_SIZE);
+		Kernel::panicf("Couldn't allocate %lu bytes", table_bytes + Paging::TableSize);
+	table_array = (Paging::Table *) upalign(uintptr_t(table_base), Paging::TableSize);
 	asm("memset %0 x $0 -> %1" :: "r"(table_bytes), "r"(table_array));
 	Paging::Entry *p0 = table_array[0];
 
@@ -138,8 +138,8 @@ void Kernel::startProcess(const std::string *text) {
 	void *translated;
 	asm("translate %1 -> %0" : "=r"(translated) : "r"(table_array));
 
-	const uintptr_t code_end = upalign(code_offset + code_length, Paging::PAGE_SIZE);
-	const uintptr_t data_end = upalign(data_offset + data_length, Paging::PAGE_SIZE);
+	const uintptr_t code_end = upalign(code_offset + code_length, Paging::PageSize);
+	const uintptr_t data_end = upalign(data_offset + data_length, Paging::PageSize);
 
 	strprint("Creating wrapper.\n");
 	Paging::Tables wrapper((Paging::Table *) translated, tables.bitmap, tables.pageCount);
@@ -148,24 +148,24 @@ void Kernel::startProcess(const std::string *text) {
 	uintptr_t physical;
 
 	strprint("Assigning code.\n");
-	for (physical = code_offset; physical < code_end; physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
+	for (physical = code_offset; physical < code_end; physical += Paging::PageSize)
+		wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::UserPage);
 
 	strprint("Assigning data.\n");
-	for (physical = data_offset; physical < data_end; physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::USERPAGE);
+	for (physical = data_offset; physical < data_end; physical += Paging::PageSize)
+		wrapper.assign((void *) (virtual_start + physical), (char *) start + physical, Paging::UserPage);
 
 	uintptr_t high;
-	asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PAGE_SIZE));
+	asm("$0 - %1 -> %0" : "=r"(high) : "r"(Paging::PageSize));
 	uintptr_t global_start = virtual_start + data_end;
 
 	strprint("Assigning stack.\n");
-	for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (high - i * Paging::PAGE_SIZE), (char *) start + physical, Paging::USERPAGE);
+	for (size_t i = 0; i < Kernel::PROCESS_STACK_PAGES; ++i, physical += Paging::PageSize)
+		wrapper.assign((void *) (high - i * Paging::PageSize), (char *) start + physical, Paging::UserPage);
 
 	strprint("Assigning free area.\n");
-	for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PAGE_SIZE)
-		wrapper.assign((void *) (global_start + i * Paging::PAGE_SIZE), (char *) start + physical, Paging::USERPAGE);
+	for (size_t i = 0; i < Kernel::PROCESS_DATA_PAGES; ++i, physical += Paging::PageSize)
+		wrapper.assign((void *) (global_start + i * Paging::PageSize), (char *) start + physical, Paging::UserPage);
 
 	long pid = getPID();
 	if (pid < 0)
@@ -194,7 +194,7 @@ void Kernel::terminateProcess(long pid) {
 		panicf("Can't terminate %ld: process not found", pid);
 	ProcessData &process = processes.at(pid);
 
-	const size_t index = uintptr_t(process.physicalStart) / Paging::PAGE_SIZE;
+	const size_t index = uintptr_t(process.physicalStart) / Paging::PageSize;
 	for (size_t i = 0; i < process.pagesNeeded; ++i)
 		tables.mark(index + i, false);
 
@@ -256,6 +256,10 @@ void Kernel::loop() {
 		keybrd_index = -1;
 		asm("<rest>");
 	}
+}
+
+void Kernel::timerCallback() {
+
 }
 
 int Kernel::rename(const char *path, const char *newpath) {

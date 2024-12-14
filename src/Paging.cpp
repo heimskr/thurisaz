@@ -21,17 +21,17 @@ static char popcnt(uint64_t x) {
 
 namespace Paging {
 	size_t getTableCount(size_t page_count) {
-		size_t divisor = TABLE_ENTRIES;
+		size_t divisor = TableEntries;
 		size_t sum = updiv(page_count, divisor);
 		for (unsigned char i = 0; i < 5; ++i)
-			sum += updiv(page_count, divisor *= TABLE_ENTRIES);
+			sum += updiv(page_count, divisor *= TableEntries);
 		return sum;
 	}
 
 	void Tables::reset(bool zero_out_tables) {
 		if (zero_out_tables) {
-			printf("Resetting tables (%lu bytes).\n", pageCount * TABLE_SIZE);
-			asm("memset %0 x $0 -> %1" :: "r"(pageCount * TABLE_SIZE), "r"(tables));
+			printf("Resetting tables (%lu bytes).\n", pageCount * TableSize);
+			asm("memset %0 x $0 -> %1" :: "r"(pageCount * TableSize), "r"(tables));
 		}
 		strprint("Resetting bitmap.\n");
 		asm("memset %0 x $0 -> %1" :: "r"(updiv(pageCount, 8)), "r"(bitmap));
@@ -52,15 +52,15 @@ namespace Paging {
 		tables[4][2] = ADDR2ENTRY04(&tables[7]);
 		tables[4][3] = ADDR2ENTRY04(&tables[8]);
 		for (short i = 0; i < 256; ++i) {
-			tables[5][i] = addr2entry5((void *) (PAGE_SIZE * i));
-			tables[6][i] = addr2entry5((void *) (PAGE_SIZE * (256 + i)));
-			tables[7][i] = addr2entry5((void *) (PAGE_SIZE * (512 + i)));
-			tables[8][i] = addr2entry5((void *) (PAGE_SIZE * (768 + i)));
+			tables[5][i] = addr2entry5((void *) (PageSize * i));
+			tables[6][i] = addr2entry5((void *) (PageSize * (256 + i)));
+			tables[7][i] = addr2entry5((void *) (PageSize * (512 + i)));
+			tables[8][i] = addr2entry5((void *) (PageSize * (768 + i)));
 		}
 
 		uintptr_t g;
 		asm("$g -> %0" : "=r"(g));
-		const size_t max = updiv(g, 64 * Paging::PAGE_SIZE);
+		const size_t max = updiv(g, 64 * Paging::PageSize);
 
 		for (size_t i = 0; i < max; ++i)
 			asm("$0 - 1 -> %0" : "=r"(bitmap[i]));
@@ -73,7 +73,7 @@ namespace Paging {
 		asm("? mem -> %0" : "=r"(memsize));
 		asm("$0 - %1 -> %0" : "=r"(pmmStart) : "r"(memsize));
 		printf("Mapping physical memory at 0x%lx...\n", pmmStart);
-		for (uintptr_t i = 0; i < memsize; i += PAGE_SIZE) {
+		for (uintptr_t i = 0; i < memsize; i += PageSize) {
 			void *virtual_address = (char *) pmmStart + i;
 			void *physical = (void *) i;
 			assignBeforePMM(p0Offset(virtual_address), p1Offset(virtual_address), p2Offset(virtual_address),
@@ -131,7 +131,7 @@ namespace Paging {
 			if (free_index == -1)
 				return nullptr;
 			mark(free_index, true);
-			return (void *) (free_index * PAGE_SIZE);
+			return (void *) (free_index * PageSize);
 		}
 
 		// TODO: verify.
@@ -147,7 +147,7 @@ namespace Paging {
 					goto nope; // sorry
 			for (size_t j = 0; j < consecutive_count; ++j)
 				mark(index + j, true);
-			return (void *) (index * PAGE_SIZE);
+			return (void *) (index * PageSize);
 			nope:
 			index += i;
 		}
@@ -190,7 +190,7 @@ namespace Paging {
 
 	uintptr_t Tables::assign(Table *usable, ptrdiff_t offset, uint8_t index0, uint8_t index1, uint8_t index2,
 	                         uint8_t index3, uint8_t index4, uint8_t index5, void *physical, uint8_t extra_meta) {
-		if (!(usable[0][index0] & PRESENT)) {
+		if (!(usable[0][index0] & Present)) {
 			// Allocate a new page for the P1 table if the P0 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++p1count;
@@ -199,8 +199,8 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p1 = (Entry *) ((char *) (usable[0][index0] & ~MASK04) + offset);
-		if (!(p1[index1] & PRESENT)) {
+		Entry *p1 = (Entry *) ((char *) (usable[0][index0] & ~Mask04) + offset);
+		if (!(p1[index1] & Present)) {
 			// Allocate a new page for the P2 table if the P1 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++p2count;
@@ -209,8 +209,8 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p2 = (Entry *) ((char *) (p1[index1] & ~MASK04) + offset);
-		if (!(p2[index2] & PRESENT)) {
+		Entry *p2 = (Entry *) ((char *) (p1[index1] & ~Mask04) + offset);
+		if (!(p2[index2] & Present)) {
 			// Allocate a new page for the P3 table if the P2 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++p3count;
@@ -219,8 +219,8 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p3 = (Entry *) ((char *) (p2[index2] & ~MASK04) + offset);
-		if (!(p3[index3] & PRESENT)) {
+		Entry *p3 = (Entry *) ((char *) (p2[index2] & ~Mask04) + offset);
+		if (!(p3[index3] & Present)) {
 			// Allocate a new page for the P4 table if the P3 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++p4count;
@@ -229,8 +229,8 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p4 = (Entry *) ((char *) (p3[index3] & ~MASK04) + offset);
-		if (!(p4[index4] & PRESENT)) {
+		Entry *p4 = (Entry *) ((char *) (p3[index3] & ~Mask04) + offset);
+		if (!(p4[index4] & Present)) {
 			// Allocate a new page for the P5 table if the P4 entry doesn't have the present bit set.
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++p5count;
@@ -239,27 +239,27 @@ namespace Paging {
 			else NOFREE();
 		}
 
-		Entry *p5 = (Entry *) ((char *) (p4[index4] & ~MASK04) + offset);
-		if (!(p5[index5] & PRESENT)) {
+		Entry *p5 = (Entry *) ((char *) (p4[index4] & ~Mask04) + offset);
+		if (!(p5[index5] & Present)) {
 			// Allocate a new page if the P5 entry doesn't have the present bit set (or, optionally, use a provided
 			// physical address).
 
 			if (physical)
-				return (p5[index5] = addr2entry5(physical) | extra_meta) & ~MASK5;
+				return (p5[index5] = addr2entry5(physical) | extra_meta) & ~Mask5;
 
 			if (void *free_addr = allocateFreePhysicalAddress()) {
 				++extracount;
-				return (p5[index5] = addr2entry5(free_addr) | extra_meta) & ~MASK5;
+				return (p5[index5] = addr2entry5(free_addr) | extra_meta) & ~Mask5;
 			}
 
 			NOFREE();
 		}
 
-		return NOT_ASSIGNED;
+		return NotAssigned;
 	}
 
 	Entry Tables::addr2entry5(void *addr, long code_offset, long data_offset) const {
-		const uintptr_t low = uintptr_t(addr) - uintptr_t(addr) % PAGE_SIZE, high = low + PAGE_SIZE;
+		const uintptr_t low = uintptr_t(addr) - uintptr_t(addr) % PageSize, high = low + PageSize;
 		const uintptr_t code = code_offset < 0? uintptr_t(codeStart) : uintptr_t(code_offset);
 		const uintptr_t data = data_offset < 0? uintptr_t(dataStart) : uintptr_t(data_offset);
 
@@ -272,7 +272,7 @@ namespace Paging {
 		// I'm aware that it's possible for a page to be both executable and writable if the code-data boundary
 		// falls within the page. There's nothing I can really do about it.
 
-		return (Entry(addr) & ~MASK5) | PRESENT | (executable? EXECUTABLE : 0) | (writable? WRITABLE : 0);
+		return (Entry(addr) & ~Mask5) | Present | (executable? Executable : 0) | (writable? Writable : 0);
 	}
 }
 
