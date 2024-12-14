@@ -657,7 +657,7 @@ namespace ThornFAT {
 			if (NEWFILE_SKIP_MAX < skipped)
 				DBGF(NEWFILEH, "  " IDS("... %d more"), skipped);
 
-			DBGF(NEWFILEH, "bs - sizeof(DirEntry) < remaining  " UDBARR "  " BLR " - " BLR " < " BLR "  " UDBARR "  " 
+			DBGF(NEWFILEH, "bs - sizeof(DirEntry) < remaining  " UDBARR "  " BLR " - " BLR " < " BLR "  " UDBARR "  "
 				BLR " < " BLR, bs, sizeof(DirEntry), remaining, bs - sizeof(DirEntry), remaining);
 
 			if (bs - sizeof(DirEntry) < remaining) {
@@ -862,7 +862,7 @@ namespace ThornFAT {
 
 			DBGF(RESIZEH, "Reducing block count from " BLR " to " BLR ".", old_c, new_c);
 
-			block_t blocks[old_c];
+			auto blocks = std::make_unique<block_t[]>(old_c);
 			block_t block = file.startBlock;
 			for (size_t i = 0; i < old_c; ++i) {
 				blocks[i] = block;
@@ -904,14 +904,13 @@ namespace ThornFAT {
 
 			block_t new_block;
 			block_t block = file.startBlock;
-			size_t skipped = 0, added = 0;
+			size_t added = 0;
 
 			for (;;) {
 				new_block = readFAT(block);
 				if (new_block <= 0)
 					break;
 				block = readFAT(block);
-				++skipped;
 			}
 
 			for (size_t i = 0; i < to_add; ++i) {
@@ -1059,7 +1058,6 @@ namespace ThornFAT {
 	}
 
 	bool ThornFATDriver::initFAT(size_t table_size, size_t block_size) {
-		size_t written = 0;
 		DBGF("initFAT", "writeOffset = %lu, table_size = %lu", writeOffset, table_size);
 		DBGF("initFAT", "sizeof: Filename[%lu], Times[%lu], block_t[%lu], FileType[%lu], mode_t[%lu], DirEntry[%lu], "
 			"Superblock[%lu]", sizeof(Filename), sizeof(Times), sizeof(block_t), sizeof(FileType), sizeof(mode_t),
@@ -1092,13 +1090,11 @@ namespace ThornFAT {
 			DBGN("initFAT", "Failed to write. Status:", status);
 			return false;
 		}
-		written += table_size + 1;
 		DBGF("initFAT", "Writing FINAL 1 time to %lu", writeOffset);
 		if ((status = writeMany(FINAL, 1)) < 0) {
 			DBGN("initFAT", "Failed to write. Status:", status);
 			return false;
 		}
-		++written;
 		return true;
 	}
 
