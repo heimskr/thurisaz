@@ -33,198 +33,192 @@ name: "Thurisaz Extra"
 %code
 
 @int_system
-	$sp{v*} -> $k2{v*}
-	$k1{v} -> $sp{v*}
+	$sp -> $k2
+	$k1 -> $sp
 
-	$a0{ul} == 0{ul} -> $m0{uc}
-	: int_system.term if $m0{uc}
+	$a0 == 0 -> $m0
+	: int_system.term if $m0
 	<p "Invalid syscall: ">
-	<prd $a0{ul}>
+	<prd $a0>
 	<prc '\n'>
 	<halt>
 
 	@int_system.term
-	%setpt $k4{v*}
+	%setpt $k4
 	%page on
-	$k0{ul} -> $a0{ul}
+	$k0 -> $a0
 	:: terminate_process
 	:: kernel_loop
 
 	@int_system.end
-	$k2{v*} -> $sp{v*}
-	$e0{v*} += 8{ul}
-	: ] %page $e0{v*}
+	$k2 -> $sp
+	$e0 += 8
+	: ] %page $e0
 
 @int_timer
-	1{uc} -> $kf{uc}
-	$kf{uc} -> [timer_expired{uc*}]
+	1 -> $kf
+	$kf -> [timer_expired] /b
 	// $e0 += 8 // TODO!: verify
-	: ] %page $e0{v*}
+	: ] %page $e0
 
 @__cxa_atexit
 	// $m1 = __atexit_count;
-	&__atexit_count{ul*} -> $m3{ul*}
-	[$m3{ul*}] -> $m1{ul}
+	&__atexit_count -> $m3
+	[$m3] -> $m1
 
 	// if (512 <= __atexit_count) halt();
-	$m1{ul} >= 512{ul} -> $m2{uc}
-	: __cxa_atexit.perish if $m2{uc}
+	$m1 >= 512 -> $m2
+	: __cxa_atexit.perish if $m2
 
 	// offset = __atexit_count * 8;
-	$m1{ul} << 3{ul} -> $m2{ul}
+	$m1 << 3 -> $m2
 
 	// *(__atexit_fns + offset) = fn;
-	&__atexit_fns{v**} -> $m0{v**}
-	$m0{v**} += $m2{ul}
-	$a0{v*} -> [$m0{v**}]
+	&__atexit_fns -> $m0
+	$m0 += $m2
+	$a0 -> [$m0]
 
 	// *(__atexit_args + offset) = arg;
-	&__atexit_args{ul*} -> $m0{ul*}
-	$m0{ul*} += $m2{ul}
-	$a1{ul} -> [$m0{ul*}]
+	&__atexit_args -> $m0
+	$m0 += $m2
+	$a1 -> [$m0]
 
 	// *(__atexit_dso_handles + offset) = arg;
-	&__atexit_dso_handles{v**} -> $m0{v**}
-	$m0{v**} += $m2{ul}
-	$a2{v*} -> [$m0{v**}]
+	&__atexit_dso_handles -> $m0
+	$m0 += $m2
+	$a2 -> [$m0]
 
 	// ++__atexit_count;
-	$m1{ul}++
-	$m1{ul} -> [$m3{ul*}]
+	$m1++
+	$m1 -> [$m3]
 
-	: $rt{v*}
+	: $rt
 
 	@__cxa_atexit.perish
 	<p "__cxa_atexit: overflow\n">
 	<halt>
 
 @_Z17___errno_locationv
-	&__errno__{si*} -> $r0{si*}
-	: $rt{v*}
+	&__errno__ -> $r0
+	: $rt
 
 @__assert_fail
-	&__assertion_failed{uc*} -> $a0{uc*}
+	&__assertion_failed -> $a0
 	:: strprint
 	<halt>
 
 @main
-	? mem -> $sp{v*}
-	$sp{v*} >> 1{ul} -> $sp{v*}
-	0xcafef00d{v*} -> $fp{v*}
+	? mem -> $sp
+	$sp / 2 -> $sp
+	0xcafef00d -> $fp
 	:: kernel_main
-	[__atexit_count{ul*}] -> $m0{ul}
+	[__atexit_count] -> $m0
 	@main.atexit.loop
-		$m0{ul} <= 0{ul} -> $m1{uc}
-		: main.halt if $m1{uc}
-		$m0{ul}--
-		$m0{ul} << 3{ul} -> $m1{ul}
-		&__atexit_fns{v**} -> $m2{v**}
-		$m2{v**} += $m1{ul}
-		[$m2{v**}] -> $m2{v*}
-		&__atexit_args{ul*} -> $a0{ul*}
-		$a0{ul*} += $m1{ul}
-		[$a0{ul*}] -> $a0{ul}
-		&__atexit_dso_handles{v**} -> $a1{v**}
-		$a1{v**} += $m1{ul}
-		[$a1{v**}] -> $a1{v*}
-		:: $m2{v*}
+		$m0 <= 0 -> $m1
+		: main.halt if $m1
+		$m0--
+		$m0 << 3 -> $m1
+		&__atexit_fns -> $m2
+		$m2 += $m1
+		[$m2] -> $m2
+		&__atexit_args -> $a0
+		$a0 += $m1
+		[$a0] -> $a0
+		&__atexit_dso_handles -> $a1
+		$a1 += $m1
+		[$a1] -> $a1
+		:: $m2
 		: main.atexit.loop
 	@main.halt
 	<p "Halted.\n">
 	<halt>
 
 @__cxa_pure_virtual
-	&__pure_virtual_called{uc*} -> $a0{uc*}
+	&__pure_virtual_called -> $a0
 	:: strprint
 	<halt>
 
 @llvm.ctlz.i64
-	#[ $t0{v} // i
-	#[ $t1{v} // mask
-	#[ $t2{v} // -1
+	[ $t0 // i
+	[ $t1 // mask
+	[ $t2 // -1
 
-	63{ul} -> $t0{ul}
-	0{ul} -> $r0{ul}
-	$0{ul} - 1{ul} -> $t2{ul}
+	63 -> $t0
+	0 -> $r0
+	$0 - 1 -> $t2
 
 	@__llvm.ctlz.i64_loop
-		1{ul} -> $t1{ul}
-		$t1{ul} << $t0{ul} -> $t1{ul}
-		$a0{v} & $t1{ul} -> $t1{ul}
-		: __llvm.ctlz.i64_done if $t1{ul}
-		$r0{ul}++
-		$t0{ul}--
-		$t0{ul} == $t2{ul} -> $t1{uc}
-		: __llvm.ctlz.i64_done if $t1{uc}
+		1 -> $t1
+		$t1 << $t0 -> $t1
+		$a0 & $t1 -> $t1
+		: __llvm.ctlz.i64_done if $t1
+		$r0++
+		$t0--
+		$t0 == $t2 -> $t1
+		: __llvm.ctlz.i64_done if $t1
 		: __llvm.ctlz.i64_loop
 	@__llvm.ctlz.i64_done
 
-	#] $t2{v}
-	#] $t1{v}
-	#] $t0{v}
-	: $rt{v*}
+	] $t2
+	] $t1
+	] $t0
+	: $rt
 
 @llvm.ctlz.i32
-	#[ $t0{v} // i
-	#[ $t1{v} // mask
-	#[ $t2{v} // -1
+	[ $t0 // i
+	[ $t1 // mask
+	[ $t2 // -1
 
-	31{ul} -> $t0{ul}
-	0{ul} -> $r0{ul}
-	$0{ul} - 1{ul} -> $t2{ul}
+	31 -> $t0
+	0 -> $r0
+	$0 - 1 -> $t2
 
 	@__llvm.ctlz.i32_loop
-		1{ul} -> $t1{ul}
-		$t1{ul} << $t0{ul} -> $t1{ul}
-		$a0{v} & $t1{ul} -> $t1{ul}
-		: __llvm.ctlz.i32_done if $t1{ul}
-		$r0{ul}++
-		$t0{ul}--
-		$t0{ul} == $t2{ul} -> $t1{uc}
-		: __llvm.ctlz.i32_done if $t1{uc}
+		1 -> $t1
+		$t1 << $t0 -> $t1
+		$a0 & $t1 -> $t1
+		: __llvm.ctlz.i32_done if $t1
+		$r0++
+		$t0--
+		$t0 == $t2 -> $t1
+		: __llvm.ctlz.i32_done if $t1
 		: __llvm.ctlz.i32_loop
 	@__llvm.ctlz.i32_done
 
-	#] $t2{v}
-	#] $t1{v}
-	#] $t0{v}
-	: $rt{v*}
+	] $t2
+	] $t1
+	] $t0
+	: $rt
 
 @llvm.fshl.i32
-	bc $a0{v} -> $a0{ul}
-	bc $a1{v} -> $a1{ul}
-	bc $a2{v} -> $a2{ul}
-	lui: 0{ui} -> $a0{ul}
-	lui: 0{ui} -> $a1{ul}
-	$a2{ul} %= 32{ul}
-	$a0{ul} <<= 32{ul}
-	$a0{ul} | $a1{ul} -> $r0{ul}
-	$r0{ul} <<= $a2{ul}
-	$r0{ul} >>>= 32{ul}
-	: $rt{v*}
+	lui: 0 -> $a0
+	lui: 0 -> $a1
+	$a2 %= 32
+	$a0 <<= 32
+	$a0 | $a1 -> $r0
+	$r0 <<= $a2
+	$r0 >>>= 32
+	: $rt
 
 @llvm.fshl.i8
-	bc $a0{v} -> $a0{ul}
-	bc $a1{v} -> $a1{ul}
-	bc $a2{v} -> $a2{ul}
-	$a0{ul} &= 0xff{ul}
-	$a1{ul} &= 0xff{ul}
-	$a2{ul} %= 8{ul}
-	$a0{ul} <<= 8{ul}
-	$a0{ul} | $a1{ul} -> $r0{ul}
-	$r0{ul} <<= $a2{ul}
-	$r0{ul} >>>= 8{ul}
-	$r0{ul} &= 0xff{ul}
-	: $rt{v*}
+	$a0 &= 0xff
+	$a1 &= 0xff
+	$a2 %= 8
+	$a0 <<= 8
+	$a0 | $a1 -> $r0
+	$r0 <<= $a2
+	$r0 >>>= 8
+	$r0 &= 0xff
+	: $rt
 
 @llvm.trap
-	&__abort_message{uc*} -> $a0{uc*}
+	&__abort_message -> $a0
 	:: strprint
 	<halt>
 
 @llvm.umul.with.overflow.i64
-	$a0{ul} * $a1{ul}
-	$lo{ul} -> $r0{ul}
-	$hi{ul} == 0{ul} -> $r1{uc}
-	!$r1{uc} -> $r1{uc}
-	: $rt{v*}
+	$a0 * $a1 /u
+	$lo -> $r0
+	$hi == 0 -> $r1
+	!$r1 -> $r1
+	: $rt
