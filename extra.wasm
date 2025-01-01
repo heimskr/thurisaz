@@ -96,7 +96,7 @@ name: "Thurisaz Extra"
 
 	@__cxa_atexit.perish
 	<p "__cxa_atexit: overflow\n">
-	<halt>
+	: spin_forever
 
 @_Z17___errno_locationv
 	&__errno__ -> $r0
@@ -105,7 +105,7 @@ name: "Thurisaz Extra"
 @__assert_fail
 	&__assertion_failed -> $a0
 	:: strprint
-	<halt>
+	: spin_forever
 
 @main
 	? mem -> $sp
@@ -131,12 +131,12 @@ name: "Thurisaz Extra"
 		: main.atexit.loop
 	@main.halt
 	<p "Halted.\n">
-	<halt>
+	: spin_forever
 
 @__cxa_pure_virtual
 	&__pure_virtual_called -> $a0
 	:: strprint
-	<halt>
+	: spin_forever
 
 @llvm.ctlz.i64
 	[ $t0 // i
@@ -214,11 +214,64 @@ name: "Thurisaz Extra"
 @llvm.trap
 	&__abort_message -> $a0
 	:: strprint
-	<halt>
+	: spin_forever
 
 @llvm.umul.with.overflow.i64
 	$a0 * $a1 /u
 	$lo -> $r0
 	$hi == 0 -> $r1
 	!$r1 -> $r1
+	: $rt
+
+@strprint
+	[$a0] -> $ma /b
+	: _strprint_print if $ma
+	: $rt
+	@_strprint_print
+	<prc $ma>
+	$a0++
+	: strprint
+
+@spin_forever
+	<halt>
+	: spin_forever
+
+@unreachable
+	<p "Unreachable code reached!\n">
+	: spin_forever
+
+@llvm.abs.i64
+	$a0 < 0 -> $ma
+	: _llvm.abs.i64_neg if $ma
+	: $rt
+	@_llvm.abs.i64_neg
+	$0 - $a0 -> $r0
+	: $rt
+
+@llvm.umin.i32
+	$a0 & 0xffffffff -> $a0
+	$a1 & 0xffffffff -> $a1
+	$a0 ~ $a1
+	[$a0 < $a1] -> $r0
+	: $rt
+
+@llvm.smin.i32
+	sext32 $a0 -> $a0
+	sext32 $a1 -> $a1
+	$a0 ~ $a1
+	[$a0 < $a1] -> $r0
+	: $rt
+
+@llvm.umax.i32
+	$a0 & 0xffffffff -> $a0
+	$a1 & 0xffffffff -> $a1
+	$a0 ~ $a1
+	[$a0 > $a1] -> $r0
+	: $rt
+
+@llvm.smax.i32
+	sext32 $a0 -> $a0
+	sext32 $a1 -> $a1
+	$a0 ~ $a1
+	[$a0 > $a1] -> $r0
 	: $rt
