@@ -79,8 +79,7 @@ extern "C" void kernel_main() {
 		// $rt is pushed right before $fp is pushed, so once we find 0xcafef00d, the next word up contains the original
 		// value of $rt.
 		long value;
-		asm("$fp + %0 -> $k1" :: "r"(offset));
-		asm("[$k1] -> %0" : "=r"(value));
+		asm("$fp + %1 -> $k1; [$k1] -> %0; %0 & 0xffffffff -> %0" : "=r"(value) : "r"(offset));
 		if (value == 0xcafef00d) {
 			asm("$fp + %1 -> %0" : "=r"(rt_addr) : "r"(offset + 8));
 			break;
@@ -90,6 +89,7 @@ extern "C" void kernel_main() {
 	char *global_start;
 	asm("$g -> %0" : "=r"(global_start));
 	global_start = (char *) upalign((long) global_start, 2048);
+	asm("<halt>");
 	printf("Global start: %ld\n", global_start);
 
 	uint64_t memsize;
@@ -128,6 +128,7 @@ extern "C" void kernel_main() {
 	asm("$sp -> $k1");
 	asm("$fp -> $k2");
 	asm("%0 -> $k3" :: "r"(table_wrapper.pmmStart));
+	printf("pmmstart = 0x%lx\n", table_wrapper.pmmStart);
 	if (rt_addr) {
 		*rt_addr += table_wrapper.pmmStart;
 	} else {
