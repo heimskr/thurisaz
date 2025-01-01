@@ -1,4 +1,4 @@
-EMIT        := clang++ -S -emit-llvm -Xclang -disable-O0-optnone -target mips64el-linux-gnu -std=c++20 -O0 -g \
+EMIT        := clang++ -S -emit-llvm -Xclang -disable-O0-optnone -target mips64el-linux-gnu -std=c++20 -O1 \
                -nostdlib -fno-builtin -fno-exceptions -frtti -Drestrict=__restrict__ -Wall -Wextra \
                -Iinclude -Imusl/arch/aarch64 -Imusl/arch/generic -Imusl/obj/src/internal -Imusl/src/include \
                -Imusl/src/internal -Imusl/obj/include -Imusl/include -Iinclude/lib -Iinclude/lib/libcxx
@@ -30,7 +30,7 @@ $(EXTRA_WHY): $(EXTRA)
 $(OUTPUT): $(WASM)
 	wasmc $< $@
 
-$(WASM): $(OPTIMIZED)
+$(WASM): $(UNOPTIMIZED)
 	ll2w $< -main > "tmp.$@"
 	mv "tmp.$@" $@
 
@@ -38,9 +38,12 @@ $(UNOPTIMIZED): $(LLVMIR)
 	$(LLVMLINK) -S -o $@ $(LLVMIR)
 
 $(OPTIMIZED): $(UNOPTIMIZED)
-	# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline -instcombine -aggressive-instcombine $< -o $@
-	# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline $< -o $@
-	$(OPT) -S --passes="function(mem2reg,dce,dse),always-inline,constmerge,deadargelim,globaldce,globalopt,inline" $< -o $@
+	@# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline -instcombine -aggressive-instcombine $< -o $@
+	@# $(OPT) -S -mem2reg -always-inline -constmerge -dce -deadargelim -dse -globaldce -globalopt -inline $< -o $@
+	@# $(OPT) -S --passes="function(mem2reg,dce,dse),always-inline,constmerge,deadargelim,globaldce,globalopt,inline" $< -o $@
+	@# $(OPT) -S --passes="function(mem2reg,sroa)" -debug-pass-manager $< -o $@
+	$(OPT) -S --passes="no-op-module,cgscc(no-op-cgscc,function(mem2reg,sroa<modify-cfg>,loop(no-op-loop))),function(mem2reg,sroa<modify-cfg>,loop(no-op-loop))" -debug-pass-manager $< -o $@
+	@# $(OPT) -S -passes="default<O3>" $< -o $@
 
 linked: $(UNOPTIMIZED)
 
