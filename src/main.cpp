@@ -67,6 +67,8 @@ extern "C" void stacktrace() {
 }
 
 extern "C" void kernel_main() {
+	long m9;
+	asm("$m9 -> %0" : "=r"(m9));
 	long rt;
 	long *rt_addr = nullptr;
 	asm("$rt -> %0" : "=r"(rt));
@@ -74,7 +76,7 @@ extern "C" void kernel_main() {
 	asm("%%rit table");
 	--keybrd_index;
 
-	for (size_t offset = 0; offset < 8 * 128; offset += 8) {
+	for (long offset = m9 - 64; offset < m9 + 64; offset += 8) {
 		// Crawl up the stack until we find the magical value of 0xcafef00d that @main in extra.wasm stuffed into $fp.
 		// $rt is pushed right before $fp is pushed, so once we find 0xcafef00d, the next word up contains the original
 		// value of $rt.

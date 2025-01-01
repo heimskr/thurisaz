@@ -128,8 +128,9 @@ extern "C" {
 
 	// internal buffer output
 	static inline void _out_buffer(char character, void *buffer, size_t idx, size_t maxlen) {
-		if (idx < maxlen)
+		if (idx < maxlen) {
 			((char *) buffer)[idx] = character;
+		}
 	}
 
 	// internal null output
@@ -141,9 +142,10 @@ extern "C" {
 
 	// internal output function wrapper
 	static inline void _out_fct(char character, void *buffer, size_t, size_t) {
-		if (character)
+		if (character) {
 			// buffer is the output fct pointer
 			((out_fct_wrap_type *) buffer)->fct(character, ((out_fct_wrap_type *) buffer)->arg);
+		}
 	}
 
 	// internal secure strlen
@@ -163,8 +165,9 @@ extern "C" {
 	// internal ASCII string to unsigned int conversion
 	static unsigned int _atoi(const char **str) {
 		unsigned int i = 0U;
-		while (_is_digit(**str))
+		while (_is_digit(**str)) {
 			i = i * 10U + (unsigned int) (*((*str)++) - '0');
+		}
 		return i;
 	}
 
@@ -174,18 +177,23 @@ extern "C" {
 		const size_t start_idx = idx;
 
 		// pad spaces up to given width
-		if (!(flags & FLAGS_LEFT) && !(flags & FLAGS_ZEROPAD))
-			for (size_t i = len; i < width; i++)
+		if (!(flags & FLAGS_LEFT) && !(flags & FLAGS_ZEROPAD)) {
+			for (size_t i = len; i < width; i++) {
 				out(' ', buffer, idx++, maxlen);
+			}
+		}
 
 		// reverse string
-		while (len)
+		while (len) {
 			out(buf[--len], buffer, idx++, maxlen);
+		}
 
 		// append pad spaces up to given width
-		if (flags & FLAGS_LEFT)
-			while (idx - start_idx < width)
+		if (flags & FLAGS_LEFT) {
+			while (idx - start_idx < width) {
 				out(' ', buffer, idx++, maxlen);
+			}
+		}
 
 		return idx;
 	}
