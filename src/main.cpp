@@ -89,7 +89,6 @@ extern "C" void kernel_main() {
 	char *global_start;
 	asm("$g -> %0" : "=r"(global_start));
 	global_start = (char *) upalign((long) global_start, 2048);
-	asm("<halt>");
 	printf("Global start: %ld\n", global_start);
 
 	uint64_t memsize;

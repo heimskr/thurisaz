@@ -137,10 +137,7 @@ extern "C" {
 	}
 
 	// internal _putchar wrapper
-	static inline void _out_char(char character, void *, size_t, size_t) {
-		if (character)
-			asm("<prc %0>" :: "r"(character));
-	}
+	void _out_char(char character, void *, size_t, size_t);
 
 	// internal output function wrapper
 	static inline void _out_fct(char character, void *buffer, size_t, size_t) {
@@ -236,29 +233,28 @@ extern "C" {
 	}
 
 	// internal itoa for 'long' type
-	static size_t _ntoa_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long value,
-	                         bool negative, unsigned long base, unsigned int prec, unsigned int width,
-	                         unsigned int flags) {
+	static size_t _ntoa_long(out_fct_type out, char *buffer, size_t idx, size_t maxlen, unsigned long value, bool negative, unsigned long base, unsigned int prec, unsigned int width, unsigned int flags) {
 		char buf[PRINTF_NTOA_BUFFER_SIZE];
 		size_t len = 0U;
 
 		// no hash for 0 values
-		if (!value)
+		if (!value) {
 			flags &= ~FLAGS_HASH;
+		}
 
 		// write if precision != 0 and value is != 0
 		if (!(flags & FLAGS_PRECISION) || value) {
-			// strprint("<Y>[ ");
+			// strprint("<Y:"); asm("<prd %0>" :: "r"(value)); strprint(">[ ");
 			do {
 				// asm("<prd %0>" :: "r"(value));
-				// asm("<prc ' '>");
+				// asm("<prc %0>" :: "r"(' '));
 				const char digit = (char) (value % base);
 				buf[len++] = digit < 10? '0' + digit : (flags & FLAGS_UPPERCASE? 'A' : 'a') + digit - 10;
 				value /= base;
 			} while (value && (len < PRINTF_NTOA_BUFFER_SIZE));
-			// asm("<prc ']'>");
+			// asm("<prc %0>" :: "r"(']'));
 		// } else {
-		// 	strprint("<N>");
+			// strprint("<N>");
 		}
 
 		return _ntoa_format(out, buffer, idx, maxlen, buf, len, negative, (unsigned int) base, prec, width, flags);
@@ -519,9 +515,10 @@ extern "C" {
 		unsigned int flags, width, precision, n;
 		size_t idx = 0U;
 
-		if (!buffer)
+		if (!buffer) {
 			// use null output function
 			out = _out_null;
+		}
 
 		while (*format) {
 			// format specifier?  %[flags][width][.precision][length]
@@ -530,9 +527,10 @@ extern "C" {
 				out(*format, buffer, idx++, maxlen);
 				++format;
 				continue;
-			} else
+			} else {
 				// yes, evaluate it
 				++format;
+			}
 
 			// evaluate flags
 			flags = 0U;
@@ -576,8 +574,9 @@ extern "C" {
 				if (w < 0) {
 					flags |= FLAGS_LEFT; // reverse padding
 					width = (unsigned int) -w;
-				} else
+				} else {
 					width = (unsigned int) w;
+				}
 				++format;
 			}
 
@@ -672,34 +671,31 @@ extern "C" {
 						if (flags & FLAGS_LONG_LONG) {
 #if defined(PRINTF_SUPPORT_LONG_LONG)
 							const long long value = va_arg(va, long long);
-							idx					  = _ntoa_long_long(out, buffer, idx, maxlen,
-								(unsigned long long) (value > 0? value : 0 - value), value < 0, base, precision, width,
-								flags);
+							// strprint("\x1b[31mlong long value = "); asm("<prd %0>" :: "r"(value)); strprint("\x1b[39m\n");
+							idx = _ntoa_long_long(out, buffer, idx, maxlen, (unsigned long long) (value > 0? value : 0 - value), value < 0, base, precision, width, flags);
 #endif
 						} else if (flags & FLAGS_LONG) {
 							const long value = va_arg(va, long);
+							// strprint("\x1b[31mlong value = "); asm("<prd %0>" :: "r"(value)); strprint("\x1b[39m\n");
 							// asm("<prc '#'>");
-							idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned long) (value > 0? value : 0 - value),
-								value < 0, base, precision, width, flags);
+							idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned long) (value > 0? value : 0 - value), value < 0, base, precision, width, flags);
 						} else {
 							const int value = (flags & FLAGS_CHAR)
 												? (char) va_arg(va, int)
 												: (flags & FLAGS_SHORT)? (short int) va_arg(va, int) : va_arg(va, int);
+							// strprint("\x1b[31mint value = "); asm("<prd %0>" :: "r"(value)); strprint("\x1b[39m\n");
 							// asm("<prc %0>" :: "r"('$'));
-							idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned int) (value > 0? value : 0 - value),
-								value < 0, base, precision, width, flags);
+							idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned int) (value > 0? value : 0 - value), value < 0, base, precision, width, flags);
 						}
 					} else {
 						// unsigned
 						if (flags & FLAGS_LONG_LONG) {
 #if defined(PRINTF_SUPPORT_LONG_LONG)
-							idx = _ntoa_long_long(out, buffer, idx, maxlen, va_arg(va, unsigned long long), false, base,
-								precision, width, flags);
+							idx = _ntoa_long_long(out, buffer, idx, maxlen, va_arg(va, unsigned long long), false, base, precision, width, flags);
 #endif
 						} else if (flags & FLAGS_LONG) {
 							// asm("<prc '%'>");
-							idx = _ntoa_long(out, buffer, idx, maxlen, va_arg(va, unsigned long), false, base,
-								precision, width, flags);
+							idx = _ntoa_long(out, buffer, idx, maxlen, va_arg(va, unsigned long), false, base, precision, width, flags);
 						} else {
 							const unsigned int value = (flags & FLAGS_CHAR)
 														? (unsigned char) va_arg(va, unsigned int)
@@ -716,8 +712,9 @@ extern "C" {
 #if defined(PRINTF_SUPPORT_FLOAT)
 				case 'f':
 				case 'F':
-					if (*format == 'F')
+					if (*format == 'F') {
 						flags |= FLAGS_UPPERCASE;
+					}
 					idx = _ftoa(out, buffer, idx, maxlen, va_arg(va, double), precision, width, flags);
 					++format;
 					break;
@@ -726,10 +723,12 @@ extern "C" {
 				case 'E':
 				case 'g':
 				case 'G':
-					if ((*format == 'g') || (*format == 'G'))
+					if ((*format == 'g') || (*format == 'G')) {
 						flags |= FLAGS_ADAPT_EXP;
-					if ((*format == 'E') || (*format == 'G'))
+					}
+					if ((*format == 'E') || (*format == 'G')) {
 						flags |= FLAGS_UPPERCASE;
+					}
 					idx = _etoa(out, buffer, idx, maxlen, va_arg(va, double), precision, width, flags);
 					++format;
 					break;
@@ -787,13 +786,11 @@ extern "C" {
 #if defined(PRINTF_SUPPORT_LONG_LONG)
 					const bool is_ll = sizeof(uintptr_t) == sizeof(long long);
 					if (is_ll) {
-						idx = _ntoa_long_long(out, buffer, idx, maxlen, (uintptr_t) va_arg(va, void *), false, 16U,
-							precision, width, flags);
+						idx = _ntoa_long_long(out, buffer, idx, maxlen, (uintptr_t) va_arg(va, void *), false, 16U, precision, width, flags);
 					} else {
 #endif
 						// asm("<prc '!'>");
-						idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned long) ((uintptr_t) va_arg(va, void *)),
-							false, 16U, precision, width, flags);
+						idx = _ntoa_long(out, buffer, idx, maxlen, (unsigned long) ((uintptr_t) va_arg(va, void *)), false, 16U, precision, width, flags);
 #if defined(PRINTF_SUPPORT_LONG_LONG)
 					}
 #endif
