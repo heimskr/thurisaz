@@ -249,6 +249,10 @@ name: "Thurisaz Extra"
 	$0 - $a0 -> $r0
 	: $rt
 
+@llvm.abs.i32
+	sext32 $a0 -> $a0
+	: llvm.abs.i64
+
 @llvm.umin.i32
 	$a0 & 0xffffffff -> $a0
 	$a1 & 0xffffffff -> $a1
@@ -282,7 +286,6 @@ name: "Thurisaz Extra"
 	: unreachable
 
 @fprintf
-@llvm.abs.i32
 @llvm.bswap.i64
 @llvm.ctpop.i64
 @llvm.memcpy.p0.p0.i64
